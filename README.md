@@ -1,22 +1,22 @@
 Type Fresh
 ==========
 
-*An Android application that allows users to change their system fonts.*
+*An Android app that allows users to change their system fonts.*
 
-Programmed by: *openback*<[openback@pixelpod.net][1]>
+Programmed by: *openback*&lt;[openback@pixelpod.net][1]&gt;
  
-Art by: *minusbaby* <[minusbaby@pixelpod.net][2]>
+Art by: *minusbaby* &lt;[minusbaby@pixelpod.net][2]&gt;
 
 The future home of Tiny Fresh will be at [Pixelpod.net][3]
 
 Description
 -----------
 
-This app is for **systems with root access only**. It offers 3 main functions:
+This app is for **systems with root access only**. It offers 4 main functions:
 
+  - Apply selected TTF fonts to the system
   - Backup system fonts to `/sdcard/Fonts`
   - Restore backed up fonts from `/sdcard/Fonts`
-  - Apply selected TTF fonts to the system
 
 Place any TTF files you have in `/sdcard/Fonts` for easiest access.
 
