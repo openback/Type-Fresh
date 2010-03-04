@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Type Fresh</string>
+	
+	
+	
+	
+	
+	
+	
+	
+	
+
+
+<string name="need_and_message">It seems you do not have AndExplorer installed. This is required to be able to choose fonts. Would you like to switch to the Market now to install it?</string>
+<string name="need_and_ok">Go to Market</string>
+<string name="need_and_cancel">Quit</string>
+<string name="no_market">Market not found</string>
+<string name="market_alert_message">Market was not found on your system.</string>
+<string name="firstrun_message">Thank you for using Type Fresh! As with any program that does work as root, you should perform a Nandroid backup first. Also, use the menu to create a backup of your existing system fonts so that you can restore them at any time.\n\nThis program requires AndExplorer for file selections, and is available on the Android Market.</string>
+<string name="firstrun_title">Welcome to Type Fresh!</string>
+<string name="reboot_title">Reboot required</string>
+<string name="reboot_message">Your system needs to be rebooted to load your new fonts. Reboot now?</string>
+<string name="reboot_ok">Reboot now</string>
+<string name="reboot_cancel">Cancel</string>
+</resources>
