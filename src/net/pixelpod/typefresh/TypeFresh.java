@@ -1,12 +1,11 @@
 package net.pixelpod.typefresh;
 
-import net.pixelpod.typefresh.R;
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.URI;
 import java.util.Arrays;
+
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
@@ -16,10 +15,10 @@ import android.content.ActivityNotFoundException;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.res.Configuration;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
-import android.os.Looper;
 import android.os.Message;
 import android.util.Log;
 import android.view.Menu;
@@ -28,30 +27,35 @@ import android.view.View;
 import android.widget.ListView;
 import android.widget.Toast;
 
-public class mainForm extends ListActivity {
+public class TypeFresh extends ListActivity {
 	public static final String TAG = "Type Fresh";
 	// activity requestCode
 	public static final int PICK_REQUEST_CODE = 0;
 	// menu
-	public static final int MENU_APPLY = 0;
-	public static final int MENU_BACKUP = 1;
+	public static final int MENU_APPLY   = 0;
+	public static final int MENU_BACKUP  = 1;
 	public static final int MENU_RESTORE = 2;
-	public static final int MENU_RESET = 3;
-	public static final int MENU_ABOUT = 4;
-	// dialogs
-	public static final int DIALOG_NEED_AND = 0;
+	public static final int MENU_RESET   = 3;
+	public static final int MENU_ABOUT   = 4;
+	// Dialogs
+	public static final int DIALOG_FIRSTRUN         =  1;
+	public static final int DIALOG_ABOUT            =  2;
+	public static final int DIALOG_NEED_ROOT        =  3;
+	public static final int DIALOG_NEED_AND         =  4;
+	public static final int DIALOG_NEED_REBOOT      =  5;
+	public static final int DIALOG_NOT_ROOTED       =  6;
+	public static final int DIALOG_COULD_NOT_REBOOT =  7;
+	public static final int DIALOG_MKDIR_FAIL       =  8;
+	public static final int DIALOG_NO_MARKET        =  9;
+	public static final int DIALOG_REMOUNT_FAILED   = 10;
 	// handler dialog messages
-	public static final int PDIAG_SET_TEXT = 0;
-	public static final int PDIAG_DISMISS = 1;
-	public static final int PDIAG_NEED_REBOOT = 2;
-	public static final int DIAG_NOT_ROOTED = 3;
+	public static final int PDIALOG_SET_TEXT = 0;
+	public static final int PDIALOG_DISMISS  = 1;
 	// handler toast message
 	public static final int TOAST_FONTS_APPLIED = 4;
+	private String toastText;
 	private String[] fonts;
 	private String[] sysFontPaths;
-	private String[] dstPaths = null;
-	private String[] srcPaths = null;
-	private String toastText;
 	private int list_position;
 	private final Runtime runtime = Runtime.getRuntime();
 	private ProgressDialog pDiag = null;
@@ -78,7 +82,7 @@ public class mainForm extends ListActivity {
 	        	sdFonts.mkdir();
 	        } catch (Exception e) {
 	        	Log.e(TAG,e.toString());
-	        	alert("Could not create Fonts directory on sdcard");
+	        	showDialog(DIALOG_MKDIR_FAIL);
 	        }
     	}
 
@@ -98,26 +102,18 @@ public class mainForm extends ListActivity {
         if ((savedInstanceState != null) && savedInstanceState.containsKey("paths")) {
         	adapter.setFontPaths(savedInstanceState.getStringArray("paths"));
         }
-        
+
         // do we need to show the welcome screen?
         SharedPreferences settings = getPreferences(Activity.MODE_PRIVATE);
         if (settings.getBoolean("firstrun", true)) {
-        	(new AlertDialog.Builder(this))
-				.setIcon(android.R.drawable.ic_dialog_info)
-				.setMessage(R.string.firstrun_message)
-				.setTitle(R.string.firstrun_title)
-				.setNeutralButton("Dismiss", new DialogInterface.OnClickListener() {
-					public void onClick(DialogInterface dialog, int id) {
-							dialog.cancel();
 
-							// Not firstrun anymore, so store that
-							SharedPreferences settings = getPreferences(Activity.MODE_PRIVATE);
-							SharedPreferences.Editor editor = settings.edit();
-							editor.putBoolean("firstrun", false);
-							editor.commit();
-					}
-				}).show();        	
-		}        
+        	// Not firstrun anymore, so store that
+			SharedPreferences.Editor editor = settings.edit();
+			editor.putBoolean("firstrun", false);
+			editor.commit();
+
+        	showDialog(DIALOG_FIRSTRUN);
+		}
     }
 
 	@Override
@@ -143,6 +139,7 @@ public class mainForm extends ListActivity {
 		try {
 			startActivityForResult(intent, PICK_REQUEST_CODE);
 		} catch (ActivityNotFoundException e) {
+			Log.e(TAG, e.toString());
 			showDialog(DIALOG_NEED_AND);
 		}
     }
@@ -208,15 +205,7 @@ public class mainForm extends ListActivity {
 	    	resetSelections();
 	    	return true;
 	    case MENU_ABOUT:
-	       	(new AlertDialog.Builder(this))
-			.setIcon(android.R.drawable.ic_dialog_info)
-			.setMessage(R.string.about_message)
-			.setTitle(R.string.about_title)
-			.setNeutralButton("Dismiss", new DialogInterface.OnClickListener() {
-				public void onClick(DialogInterface dialog, int id) {
-						dialog.cancel();
-				}
-			}).show();
+	       	showDialog(DIALOG_ABOUT);
 	    	return true;
 	    }
 	    return false;
@@ -253,131 +242,160 @@ public class mainForm extends ListActivity {
 	
 	protected void copyFiles(String dialogTitle, String completedToast, String[] src, String[] dst) {
 		if (src.length != dst.length) {
-			Log.e(TAG,"copyFonts: src and destination lenght mismatch. Quitting.");
+			Log.e(TAG,"copyFonts: src and destination lenght mismatch. Quitting copy.");
 			return;
 		}
-		
-		srcPaths = src;
-		dstPaths = dst;
+
 		toastText = completedToast;
-		
+
 		pDiag = new ProgressDialog(this);
 		pDiag.setTitle(dialogTitle);
 		pDiag.setCancelable(false);
 		pDiag.setProgressStyle(ProgressDialog.STYLE_SPINNER);
 		pDiag.show();
 
-		new Thread() {
-			public void run() {
-				Looper.prepare();
-				String cmd = null;
-				boolean needReboot = false;
-				Process su = null;
-				
-				try {
-					remount("rw");
-
-					for (int i = 0; i < srcPaths.length; i++) {
-						if (srcPaths[i].equals(dstPaths[i])) {
-							continue;
-						}
-						handler.sendMessage(Message.obtain(handler, PDIAG_SET_TEXT, srcPaths[i]));
-						su = runtime.exec("/system/bin/su");
-						cmd = "cp -f " + srcPaths[i] + " " + dstPaths[i];
-						Log.i(TAG,"Executing \"" + cmd + "\"");
-						cmd += "\nexit\n";
-
-						su.getOutputStream().write(cmd.getBytes());
-
-						if (su.waitFor() != 0) {
-							BufferedReader br = new BufferedReader(new InputStreamReader(su.getErrorStream()), 200);
-							String line;
-							while((line = br.readLine()) != null) {
-								Log.e(TAG,"Error copying: \"" + line + "\"");								
-							}
-							// even if there was an error, we want to continue to remount the system
-						} else {
-							// If we've overwritten any of the core fonts, we need to reboot
-							if (dstPaths[i].indexOf("/system/fonts/Droid") == 0) {
-								needReboot = true;
-							}
-						}
-					}
-
-					remount("ro");
-
-					handler.sendEmptyMessage(TOAST_FONTS_APPLIED);
-
-					if (needReboot) {
-						handler.sendEmptyMessage(PDIAG_NEED_REBOOT);
-					} else {
-						handler.sendEmptyMessage(PDIAG_DISMISS);
-					}
-				} catch (IOException e) {
-					Log.e(TAG,e.toString());
-					handler.sendEmptyMessage(DIAG_NOT_ROOTED);
-				} catch (InterruptedException e) {
-					Log.e(TAG,e.toString());
-				}
-				handler.sendEmptyMessage(PDIAG_DISMISS);
-			}
-		}.start();
+		(new Thread(new FileCopier(handler,src, dst))).start();
 	}
+
 
 	@Override
 	protected Dialog onCreateDialog(int id) {
 		AlertDialog dialog;
-		AlertDialog.Builder builder = new AlertDialog.Builder(this);
 
 		switch (id) {
+		case DIALOG_FIRSTRUN:
+			dialog = (new AlertDialog.Builder(this))
+				.setIcon(android.R.drawable.ic_dialog_info)
+				.setTitle(R.string.firstrun_title)
+				.setMessage(R.string.firstrun_message)
+				.setNeutralButton("Dismiss", new DialogInterface.OnClickListener() {
+					public void onClick(DialogInterface dialog, int id) {
+							dialog.cancel();
+					}
+				}
+			).create();
+			break;
+		case DIALOG_ABOUT:
+			dialog = (new AlertDialog.Builder(this))
+				.setIcon(android.R.drawable.ic_dialog_info)
+				.setTitle(R.string.about_title)
+				.setMessage(R.string.about_message)
+				.setNeutralButton("Dismiss", new DialogInterface.OnClickListener() {
+					public void onClick(DialogInterface dialog, int id) {
+							dialog.cancel();
+					}
+				}
+			).create();
+			break;
 		case DIALOG_NEED_AND:
-			builder = new AlertDialog.Builder(this);
-			builder.setIcon(android.R.drawable.ic_dialog_alert)
-				   .setMessage(R.string.need_and_message)
-				   .setTitle("AndExplorer not found")
-				   .setCancelable(false)
-				   .setPositiveButton(R.string.need_and_ok, new DialogInterface.OnClickListener() {
-			           public void onClick(DialogInterface dialog, int id) {
-			        	   try {
-				        	   Intent marketIntent = new Intent(android.content.Intent.ACTION_VIEW, Uri.parse("market://search?q=pname:lysesoft.andexplorer"));
-	                           startActivity(marketIntent);
-			        	   } catch (ActivityNotFoundException e) {
-			        		   AlertDialog.Builder noMarketBuilder = new AlertDialog.Builder(mainForm.this);
-			        		   noMarketBuilder.setIcon(android.R.drawable.ic_dialog_alert)
-							   				  .setMessage(R.string.market_alert_message)
-							                  .setTitle(R.string.no_market)
-							                  .setNeutralButton("Ok", new DialogInterface.OnClickListener() {
-							                	  	public void onClick(DialogInterface dialog, int id) {
-							                	  		dialog.cancel();
-							                	  	}
-							                  })
-							                  .show();
-			        	   }
-			           }
-			       })
-			       .setNegativeButton(R.string.need_and_cancel, new DialogInterface.OnClickListener() {
-			           public void onClick(DialogInterface dialog, int id) {
-			                dialog.cancel();
-			           }
-			       });
+			dialog = (new AlertDialog.Builder(this))
+				.setIcon(android.R.drawable.ic_dialog_alert)
+				.setTitle("AndExplorer not found")
+				.setMessage(R.string.need_and_message)
+				.setPositiveButton(R.string.need_and_ok, new DialogInterface.OnClickListener() {
+					public void onClick(DialogInterface dialog, int id) {
+						dialog.cancel();
 
-			
-			
-			dialog = builder.create();
+						try {
+							Intent marketIntent = new Intent(android.content.Intent.ACTION_VIEW, Uri.parse("market://search?q=pname:lysesoft.andexplorer"));
+					        startActivity(marketIntent);
+						} catch (ActivityNotFoundException e) {
+							showDialog(DIALOG_NO_MARKET);
+						}
+					}
+				})
+				.setNegativeButton(R.string.need_and_cancel, new DialogInterface.OnClickListener() {
+					public void onClick(DialogInterface dialog, int id) {
+						dialog.cancel();
+					}
+				}
+			).create();
+			break;
+		case DIALOG_NEED_ROOT:
+			dialog = (new AlertDialog.Builder(this))
+				.setIcon(android.R.drawable.ic_dialog_alert)
+				.setMessage("Error copying files. Are you rooted?")
+				.setTitle("su command error")
+				.setNeutralButton("Cancel", new DialogInterface.OnClickListener() {
+					public void onClick(DialogInterface dialog, int id) {
+						dialog.cancel();
+					}
+				}
+			).create();
+			break;
+		case DIALOG_NO_MARKET:
+			dialog = (new AlertDialog.Builder(this))
+				.setIcon(android.R.drawable.ic_dialog_alert)
+				.setTitle(R.string.no_market)
+				.setMessage(R.string.market_alert_message)
+				.setNeutralButton("Ok", new DialogInterface.OnClickListener() {
+					public void onClick(DialogInterface dialog, int id) {
+						dialog.cancel();
+					}
+				}
+			).create();
+			break;
+		case DIALOG_COULD_NOT_REBOOT:
+			dialog = (new AlertDialog.Builder(this))
+				.setIcon(android.R.drawable.ic_dialog_alert)
+				.setTitle("Reboot error")
+				.setMessage("Could not reboot the system. Please do so manually.")
+				.setNeutralButton("Dismiss", new DialogInterface.OnClickListener() {
+					public void onClick(DialogInterface dialog, int id) {
+							dialog.cancel();
+					}
+				}
+			).create();
+			break;
+		case DIALOG_MKDIR_FAIL:
+			dialog = (new AlertDialog.Builder(this))
+				.setIcon(android.R.drawable.ic_dialog_alert)
+				.setTitle("Error")
+				.setMessage("Could not create Fonts directory on sdcard")
+				.setNeutralButton("Dismiss", new DialogInterface.OnClickListener() {
+					public void onClick(DialogInterface dialog, int id) {
+							dialog.cancel();
+					}
+				}
+			).create();
+			break;
+		case DIALOG_REMOUNT_FAILED:
+			dialog = (new AlertDialog.Builder(this))
+				.setIcon(android.R.drawable.ic_dialog_alert)
+				.setTitle("Error")
+				.setMessage("Could not remount /system/fonts")
+				.setNeutralButton("Dismiss", new DialogInterface.OnClickListener() {
+					public void onClick(DialogInterface dialog, int id) {
+							dialog.cancel();
+					}
+				}
+			).create();
+			break;
+		case DIALOG_NEED_REBOOT:
+			dialog = (new AlertDialog.Builder(this))
+				.setIcon(android.R.drawable.ic_dialog_alert)
+				.setMessage(R.string.reboot_message)
+				.setTitle(R.string.reboot_title)
+				.setPositiveButton(R.string.reboot_ok, new DialogInterface.OnClickListener() {
+					public void onClick(DialogInterface dialog, int id) {
+						dialog.cancel();
+						reboot();
+					}
+				})
+				.setNegativeButton(R.string.reboot_cancel, new DialogInterface.OnClickListener() {
+					public void onClick(DialogInterface dialog, int id) {
+						dialog.cancel();
+					}
+				}
+			).create();
 			break;
 		default:
-				dialog = null;
+			dialog = null;
 		}
 		
 		return dialog;
 	}
-	
-	protected void alert(String msg) {
-		AlertDialog diag = new AlertDialog.Builder(this).create();
-		diag.setTitle(msg);
-		diag.show();
-	}
-	
+
 	protected void reboot() {
 		pDiag = new ProgressDialog(this);
 		pDiag.setTitle("Rebooting");
@@ -400,17 +418,7 @@ public class mainForm extends ListActivity {
 		} catch (Exception e) {
 			Log.e(TAG, e.toString());
 			pDiag.dismiss();
-
-			(new AlertDialog.Builder(this))
-				.setIcon(android.R.drawable.ic_dialog_alert)
-				.setMessage("Could not reboot the system. Please do so manually.")
-				.setTitle("Reboot error")
-				.setNeutralButton("Dismiss", new DialogInterface.OnClickListener() {
-					public void onClick(DialogInterface dialog, int id) {
-							dialog.cancel();
-					}
-				}
-			).show();
+			showDialog(DIALOG_COULD_NOT_REBOOT);
 		}
 	}
 
@@ -418,54 +426,30 @@ public class mainForm extends ListActivity {
 		@Override
 		public void handleMessage(final Message msg) {
 			switch (msg.what) {
-			case PDIAG_SET_TEXT:
+			case PDIALOG_SET_TEXT:
 				pDiag.setMessage((String)msg.obj);
 				break;
-			case PDIAG_DISMISS:
+			case PDIALOG_DISMISS:
 				pDiag.dismiss();
 				break;
-			case PDIAG_NEED_REBOOT:
+			case DIALOG_NEED_REBOOT:
 				pDiag.dismiss();
-				(new AlertDialog.Builder(mainForm.this))
-							   .setIcon(android.R.drawable.ic_dialog_alert)
-			   				   .setMessage(R.string.reboot_message)
-			                   .setTitle(R.string.reboot_title)
-			                   .setPositiveButton(R.string.reboot_ok, new DialogInterface.OnClickListener() {
-			                	  	public void onClick(DialogInterface dialog, int id) {
-			                	  		reboot();
-			                	  		dialog.cancel();
-			                	  	}
-			                  })
-			                   .setNegativeButton(R.string.reboot_cancel, new DialogInterface.OnClickListener() {
-			                	  	public void onClick(DialogInterface dialog, int id) {
-			                	  		dialog.cancel();
-			                	  	}
-			                  })
-			                  .show();
+				showDialog(DIALOG_NEED_REBOOT);
 				break;
-			case DIAG_NOT_ROOTED:
+			case DIALOG_NOT_ROOTED:
 				pDiag.dismiss();
-				(new AlertDialog.Builder(mainForm.this))
-							   .setIcon(android.R.drawable.ic_dialog_alert)
-			   				   .setMessage("Error copying files. Are you rooted?")
-			                   .setTitle("su command error")
-			                   .setNeutralButton("Cancel", new DialogInterface.OnClickListener() {
-			                	  	public void onClick(DialogInterface dialog, int id) {
-			                	  		dialog.cancel();
-			                	  	}
-			                  })
-			                  .show();
+				showDialog(DIALOG_NOT_ROOTED);
 				break;
 			case TOAST_FONTS_APPLIED:
-				Toast.makeText(mainForm.this,toastText,Toast.LENGTH_SHORT).show();
+				Toast.makeText(TypeFresh.this,toastText,Toast.LENGTH_SHORT).show();
 				break;
 			}
 		}
 	};
 	
-	protected void remount(String type) {
+	public static boolean remount(String type) {
 		try {
-			Process su = runtime.exec("/system/bin/su");
+			Process su = Runtime.getRuntime().exec("/system/bin/su");
 			Log.i(TAG,"Remounting /system " + type);
 			String cmd = "mount -o remount," + type + " -t yaffs2 /dev/block/mtdblock3 /system\nexit\n";
 			su.getOutputStream().write(cmd.getBytes());
@@ -477,13 +461,13 @@ public class mainForm extends ListActivity {
 					Log.e(TAG,"Error remounting: \"" + line + "\"");
 				}
 				Log.e(TAG, "Could not remount, returning");
-				return;
+				return false;
 			} else {
 				Log.i(TAG,"Remounted /system " + type);
 			}
 		} catch (Exception e) {
-			
+			return false;
 		}
-		
+		return true;
 	}
 }
