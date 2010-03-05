@@ -1,4 +1,6 @@
-package com.pixelpod.typefresh;
+package net.pixelpod.typefresh;
+import net.pixelpod.typefresh.R;
+
 import android.app.Activity;
 import android.util.Log;
 import android.view.LayoutInflater;

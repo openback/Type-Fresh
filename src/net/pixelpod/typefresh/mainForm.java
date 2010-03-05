@@ -1,12 +1,12 @@
-package com.pixelpod.typefresh;
+package net.pixelpod.typefresh;
 
+import net.pixelpod.typefresh.R;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.URI;
 import java.util.Arrays;
-
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
