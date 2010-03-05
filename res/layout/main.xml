@@ -6,8 +6,9 @@
 	<ImageView
 		android:layout_width="fill_parent"
 		android:layout_height="30dp"
-		android:background="#2b2b2b"
-		android:src="@drawable/select_fonts" />	
+		android:background="#000000"
+		android:src="@drawable/header"
+		android:scaleType="center" />	
 	<ListView 
 		android:id="@+id/android:list"
 		android:layout_width="fill_parent"

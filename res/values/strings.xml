@@ -23,4 +23,6 @@
 <string name="reboot_message">Your system needs to be rebooted to load your new fonts. Reboot now?</string>
 <string name="reboot_ok">Reboot now</string>
 <string name="reboot_cancel">Cancel</string>
+<string name="about_title">Type Fresh</string>
+<string name="about_message">Programmed by: openback\n   openback@pixelpod.net\n\nGraphics by: minusbaby\n   minusbaby@pixelpod.net\n\nfor Pixelpod INTERNATIONAL\n\nhttp://pixelpod.net</string>
 </resources>

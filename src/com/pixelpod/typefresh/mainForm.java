@@ -37,6 +37,7 @@ public class mainForm extends ListActivity {
 	public static final int MENU_BACKUP = 1;
 	public static final int MENU_RESTORE = 2;
 	public static final int MENU_RESET = 3;
+	public static final int MENU_ABOUT = 4;
 	// dialogs
 	public static final int DIALOG_NEED_AND = 0;
 	// handler dialog messages
@@ -57,6 +58,8 @@ public class mainForm extends ListActivity {
 	private FontListAdapter adapter = null;
 	private static boolean backupExists = true;
 	
+	// TODO: handle rotation while in the middle of work
+	// TODO: Leaks from Dialogs when rotated
 
     /** Called when the activity is first created. */
     @Override
@@ -166,13 +169,16 @@ public class mainForm extends ListActivity {
 		menu.add(0, MENU_BACKUP, 0, "Backup fonts");
 		menu.add(0, MENU_RESTORE, 0, "Restore fonts").setIcon(android.R.drawable.ic_menu_revert);
 		menu.add(0, MENU_RESET, 0, "Reset paths").setIcon(R.drawable.ic_menu_clear_playlist);
+		menu.add(0, MENU_ABOUT, 0, "About").setIcon(android.R.drawable.ic_menu_help);
 		return true;
 	}
 	
     @Override
     public boolean onPrepareOptionsMenu(Menu menu) {
-    	menu.findItem(MENU_APPLY).setEnabled(!Arrays.equals(sysFontPaths, adapter.getPaths()));
-		// TODO: Is there somewhere else I could do this?
+    	boolean pathsSet = !Arrays.equals(sysFontPaths, adapter.getPaths());
+    	menu.findItem(MENU_APPLY).setEnabled(pathsSet);
+    	menu.findItem(MENU_RESET).setEnabled(pathsSet);
+    	// TODO: Is there somewhere else I could do this?
     	backupExists = true;
 		for (int i = 0; i < adapter.getFonts().length; i++) {
         	// check if any existing fonts are not backed up
@@ -200,6 +206,17 @@ public class mainForm extends ListActivity {
 	        return true;
 	    case MENU_RESET:
 	    	resetSelections();
+	    	return true;
+	    case MENU_ABOUT:
+	       	(new AlertDialog.Builder(this))
+			.setIcon(android.R.drawable.ic_dialog_info)
+			.setMessage(R.string.about_message)
+			.setTitle(R.string.about_title)
+			.setNeutralButton("Dismiss", new DialogInterface.OnClickListener() {
+				public void onClick(DialogInterface dialog, int id) {
+						dialog.cancel();
+				}
+			}).show();
 	    	return true;
 	    }
 	    return false;
@@ -364,7 +381,7 @@ public class mainForm extends ListActivity {
 	protected void reboot() {
 		pDiag = new ProgressDialog(this);
 		pDiag.setTitle("Rebooting");
-		pDiag.setMessage("Please wait.");
+		pDiag.setMessage("Please wait...");
 		pDiag.show();
 
 		try {
