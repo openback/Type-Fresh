@@ -68,6 +68,9 @@ public class TypeFresh extends ListActivity {
 
         File fontsDir = new File("/system/fonts");
         fonts = fontsDir.list();
+        // remove all file references for the sake of remounting
+        fontsDir = null;
+
         Arrays.sort(fonts);
         sysFontPaths = new String[fonts.length];
         
@@ -174,10 +177,12 @@ public class TypeFresh extends ListActivity {
 	
     @Override
     public boolean onPrepareOptionsMenu(Menu menu) {
+    	// if the user hasn't selected any fonts, the next two menu items are useless
     	boolean pathsSet = !Arrays.equals(sysFontPaths, adapter.getPaths());
     	menu.findItem(MENU_APPLY).setEnabled(pathsSet);
     	menu.findItem(MENU_RESET).setEnabled(pathsSet);
-    	// TODO: Is there somewhere else I could do this?
+
+    	// Check for a backup to see if we should enable the restore option
     	backupExists = true;
 		for (int i = 0; i < adapter.getFonts().length; i++) {
         	// check if any existing fonts are not backed up
@@ -440,7 +445,7 @@ public class TypeFresh extends ListActivity {
 		try {
 			Process su = Runtime.getRuntime().exec("/system/bin/su");
 			Log.i(TAG,"Remounting /system " + type);
-			String cmd = "mount -o remount," + type + " -t yaffs2 /dev/block/mtdblock3 /system\nexit\n";
+			String cmd = "mount -o " + type + ",remount /system\nexit\n";
 			su.getOutputStream().write(cmd.getBytes());
 			
 			if (su.waitFor() != 0) {

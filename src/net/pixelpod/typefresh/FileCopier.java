@@ -63,6 +63,8 @@ public class FileCopier extends AsyncTask<Object, Object, Void> {
 						needReboot = true;
 					}
 				}
+				// clear up references, since we're done
+				su.destroy();
 			}
 
 			if (!TypeFresh.remount(TypeFresh.READ_ONLY)) {
