@@ -15,17 +15,14 @@ import android.content.ActivityNotFoundException;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.content.res.Configuration;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.Message;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.ListView;
-import android.widget.Toast;
 
 public class TypeFresh extends ListActivity {
 	public static final String TAG = "Type Fresh";
@@ -40,31 +37,29 @@ public class TypeFresh extends ListActivity {
 	// Dialogs
 	public static final int DIALOG_FIRSTRUN         =  1;
 	public static final int DIALOG_ABOUT            =  2;
-	public static final int DIALOG_NEED_ROOT        =  3;
-	public static final int DIALOG_NEED_AND         =  4;
-	public static final int DIALOG_NEED_REBOOT      =  5;
-	public static final int DIALOG_NOT_ROOTED       =  6;
-	public static final int DIALOG_COULD_NOT_REBOOT =  7;
+	public static final int DIALOG_NEED_AND         =  3;
+	public static final int DIALOG_NEED_REBOOT      =  4;
+	public static final int DIALOG_REBOOT           =  5;
+	public static final int DIALOG_COULD_NOT_REBOOT =  6;
+	public static final int DIALOG_NEED_ROOT        =  7;
 	public static final int DIALOG_MKDIR_FAIL       =  8;
 	public static final int DIALOG_NO_MARKET        =  9;
 	public static final int DIALOG_REMOUNT_FAILED   = 10;
-	// handler dialog messages
-	public static final int PDIALOG_SET_TEXT = 0;
-	public static final int PDIALOG_DISMISS  = 1;
-	// handler toast message
-	public static final int TOAST_FONTS_APPLIED = 4;
-	private String toastText;
+	public static final int DIALOG_PROGRESS         = 11;
+	public static final int PDIALOG_DISMISS         = 12;
+	// for reboot()
+	public static final int READ_ONLY  = 0;
+	public static final int READ_WRITE = 1;
+	
 	private String[] fonts;
 	private String[] sysFontPaths;
 	private int list_position;
 	private final Runtime runtime = Runtime.getRuntime();
-	private ProgressDialog pDiag = null;
+	public ProgressDialog mPDialog = null;
 	private FontListAdapter adapter = null;
 	private static boolean backupExists = true;
+	private static AsyncTask<Object, Object, Void> mFileCopier = null;
 	
-	// TODO: handle rotation while in the middle of work
-	// TODO: Leaks from Dialogs when rotated
-
     /** Called when the activity is first created. */
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -103,6 +98,12 @@ public class TypeFresh extends ListActivity {
         	adapter.setFontPaths(savedInstanceState.getStringArray("paths"));
         }
 
+        if ((mFileCopier != null) && (mFileCopier.getStatus() != AsyncTask.Status.FINISHED)) {
+        	// we have a running thread, so tell it about our new activity
+        	((FileCopier) mFileCopier).setActivity(this);
+        	return;
+        }
+
         // do we need to show the welcome screen?
         SharedPreferences settings = getPreferences(Activity.MODE_PRIVATE);
         if (settings.getBoolean("firstrun", true)) {
@@ -118,6 +119,7 @@ public class TypeFresh extends ListActivity {
 
 	@Override
 	public void onSaveInstanceState(Bundle bundle) {
+		// store the selected fonts
 		bundle.putStringArray("paths", adapter.fontPaths);
 	}
 
@@ -225,8 +227,8 @@ public class TypeFresh extends ListActivity {
 		for(int i = 0; i < sPaths.length; i++) {
 			sPaths[i] = "/sdcard/Fonts/" + fonts[i];
 		}
-		copyFiles("Restoring Fonts", "Fonts restored from SD card", sPaths, sysFontPaths);
 
+		copyFiles("Restoring Fonts", "Fonts restored from SD card", sPaths, sysFontPaths);
 		resetSelections();
 	}
 	
@@ -246,15 +248,8 @@ public class TypeFresh extends ListActivity {
 			return;
 		}
 
-		toastText = completedToast;
-
-		pDiag = new ProgressDialog(this);
-		pDiag.setTitle(dialogTitle);
-		pDiag.setCancelable(false);
-		pDiag.setProgressStyle(ProgressDialog.STYLE_SPINNER);
-		pDiag.show();
-
-		(new Thread(new FileCopier(handler,src, dst))).start();
+		mFileCopier = new FileCopier(this);
+		mFileCopier.execute(src, dst, completedToast);
 	}
 
 
@@ -270,7 +265,7 @@ public class TypeFresh extends ListActivity {
 				.setMessage(R.string.firstrun_message)
 				.setNeutralButton("Dismiss", new DialogInterface.OnClickListener() {
 					public void onClick(DialogInterface dialog, int id) {
-							dialog.cancel();
+							dialog.dismiss();
 					}
 				}
 			).create();
@@ -282,7 +277,7 @@ public class TypeFresh extends ListActivity {
 				.setMessage(R.string.about_message)
 				.setNeutralButton("Dismiss", new DialogInterface.OnClickListener() {
 					public void onClick(DialogInterface dialog, int id) {
-							dialog.cancel();
+							dialog.dismiss();
 					}
 				}
 			).create();
@@ -294,7 +289,7 @@ public class TypeFresh extends ListActivity {
 				.setMessage(R.string.need_and_message)
 				.setPositiveButton(R.string.need_and_ok, new DialogInterface.OnClickListener() {
 					public void onClick(DialogInterface dialog, int id) {
-						dialog.cancel();
+						dialog.dismiss();
 
 						try {
 							Intent marketIntent = new Intent(android.content.Intent.ACTION_VIEW, Uri.parse("market://search?q=pname:lysesoft.andexplorer"));
@@ -306,7 +301,7 @@ public class TypeFresh extends ListActivity {
 				})
 				.setNegativeButton(R.string.need_and_cancel, new DialogInterface.OnClickListener() {
 					public void onClick(DialogInterface dialog, int id) {
-						dialog.cancel();
+						dialog.dismiss();
 					}
 				}
 			).create();
@@ -318,7 +313,7 @@ public class TypeFresh extends ListActivity {
 				.setTitle("su command error")
 				.setNeutralButton("Cancel", new DialogInterface.OnClickListener() {
 					public void onClick(DialogInterface dialog, int id) {
-						dialog.cancel();
+						dialog.dismiss();
 					}
 				}
 			).create();
@@ -330,7 +325,7 @@ public class TypeFresh extends ListActivity {
 				.setMessage(R.string.market_alert_message)
 				.setNeutralButton("Ok", new DialogInterface.OnClickListener() {
 					public void onClick(DialogInterface dialog, int id) {
-						dialog.cancel();
+						dialog.dismiss();
 					}
 				}
 			).create();
@@ -342,7 +337,7 @@ public class TypeFresh extends ListActivity {
 				.setMessage("Could not reboot the system. Please do so manually.")
 				.setNeutralButton("Dismiss", new DialogInterface.OnClickListener() {
 					public void onClick(DialogInterface dialog, int id) {
-							dialog.cancel();
+							dialog.dismiss();
 					}
 				}
 			).create();
@@ -354,7 +349,7 @@ public class TypeFresh extends ListActivity {
 				.setMessage("Could not create Fonts directory on sdcard")
 				.setNeutralButton("Dismiss", new DialogInterface.OnClickListener() {
 					public void onClick(DialogInterface dialog, int id) {
-							dialog.cancel();
+							dialog.dismiss();
 					}
 				}
 			).create();
@@ -366,7 +361,7 @@ public class TypeFresh extends ListActivity {
 				.setMessage("Could not remount /system/fonts")
 				.setNeutralButton("Dismiss", new DialogInterface.OnClickListener() {
 					public void onClick(DialogInterface dialog, int id) {
-							dialog.cancel();
+							dialog.dismiss();
 					}
 				}
 			).create();
@@ -378,16 +373,31 @@ public class TypeFresh extends ListActivity {
 				.setTitle(R.string.reboot_title)
 				.setPositiveButton(R.string.reboot_ok, new DialogInterface.OnClickListener() {
 					public void onClick(DialogInterface dialog, int id) {
-						dialog.cancel();
+						dialog.dismiss();
 						reboot();
 					}
 				})
 				.setNegativeButton(R.string.reboot_cancel, new DialogInterface.OnClickListener() {
 					public void onClick(DialogInterface dialog, int id) {
-						dialog.cancel();
+						dialog.dismiss();
 					}
 				}
 			).create();
+			break;
+		case DIALOG_REBOOT:
+			mPDialog = new ProgressDialog(this);
+			mPDialog.setTitle("Rebooting");
+			mPDialog.setMessage("Please Wait...");
+			mPDialog.setCancelable(false);
+			mPDialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
+			dialog = mPDialog;
+			break;
+		case DIALOG_PROGRESS:
+			mPDialog = new ProgressDialog(this);
+			mPDialog.setTitle("Copying fonts");
+			mPDialog.setCancelable(false);
+			mPDialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
+			dialog = mPDialog;
 			break;
 		default:
 			dialog = null;
@@ -396,58 +406,37 @@ public class TypeFresh extends ListActivity {
 		return dialog;
 	}
 
+	// reboot works, but can happen any time from 10 seconds to
+	// 5 minutes after being called
+	// TODO: Figure out why reboot is random
 	protected void reboot() {
-		pDiag = new ProgressDialog(this);
-		pDiag.setTitle("Rebooting");
-		pDiag.setMessage("Please wait...");
-		pDiag.show();
+		showDialog(DIALOG_REBOOT);
 
 		try {
 			Log.i(TAG,"Calling reboot");
 			Process su = runtime.exec("/system/bin/su");
 			su.getOutputStream().write("reboot".getBytes());
-/*			if (su.waitFor() != 0) {
-				BufferedReader br = new BufferedReader(new InputStreamReader(su.getErrorStream()), 200);
-				String line;
-				while((line = br.readLine()) != null) {
-					Log.e(TAG,"Error copying: \"" + line + "\"");								
-				}
-				// even if there was an error, we want to continue to remount the system
-			}
-*/
 		} catch (Exception e) {
 			Log.e(TAG, e.toString());
-			pDiag.dismiss();
+			dismissDialog(DIALOG_PROGRESS);
 			showDialog(DIALOG_COULD_NOT_REBOOT);
+		}
+		
+		if (mPDialog.isShowing()) {
+			dismissDialog(DIALOG_PROGRESS);
 		}
 	}
 
-	private final Handler handler = new Handler() {
-		@Override
-		public void handleMessage(final Message msg) {
-			switch (msg.what) {
-			case PDIALOG_SET_TEXT:
-				pDiag.setMessage((String)msg.obj);
-				break;
-			case PDIALOG_DISMISS:
-				pDiag.dismiss();
-				break;
-			case DIALOG_NEED_REBOOT:
-				pDiag.dismiss();
-				showDialog(DIALOG_NEED_REBOOT);
-				break;
-			case DIALOG_NOT_ROOTED:
-				pDiag.dismiss();
-				showDialog(DIALOG_NOT_ROOTED);
-				break;
-			case TOAST_FONTS_APPLIED:
-				Toast.makeText(TypeFresh.this,toastText,Toast.LENGTH_SHORT).show();
-				break;
-			}
+	// TODO: Error remounting: "mount: mounting /dev/block/mtdblock3 on /system failed: Device or resource busy"
+	public static boolean remount(int readwrite) {
+		String type;
+
+		if (readwrite == READ_WRITE) {
+			type = "rw";
+		} else {
+			type = "ro";
 		}
-	};
-	
-	public static boolean remount(String type) {
+
 		try {
 			Process su = Runtime.getRuntime().exec("/system/bin/su");
 			Log.i(TAG,"Remounting /system " + type);

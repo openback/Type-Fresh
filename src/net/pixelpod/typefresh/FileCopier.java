@@ -4,32 +4,37 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 
-import android.os.Handler;
+import android.os.AsyncTask;
 import android.os.Looper;
-import android.os.Message;
 import android.util.Log;
+import android.widget.Toast;
 
-public class FileCopier implements Runnable {
+public class FileCopier extends AsyncTask<Object, Object, Void> {
+	private String mToastText = "";
 	private String[] dstPaths = null;
 	private String[] srcPaths = null;
-	private Handler handler   = null;
+	private TypeFresh mTypeFresh = null;
 
-	public FileCopier(Handler msgHandler, String[] src, String[] dst) {
-		handler = msgHandler;
-		srcPaths = src;
-		dstPaths = dst;
+	public FileCopier(TypeFresh typeFresh) {
+		mTypeFresh = typeFresh;
 	}
-	
-	public void run() {
+
+	@Override
+	// params: String[] source, String[] destination, toastText 
+	protected Void doInBackground(Object... params) {
+		srcPaths = (String[])params[0];
+		dstPaths = (String[])params[1];
+		mToastText = (String)params[2];
+
 		Looper.prepare();
 		String cmd = null;
 		boolean needReboot = false;
 		Process su = null;
 		Runtime runtime = Runtime.getRuntime();
 		
-		if (!TypeFresh.remount("rw")) {
-			handler.sendEmptyMessage(TypeFresh.DIALOG_REMOUNT_FAILED);
-			return;
+		if (!TypeFresh.remount(TypeFresh.READ_WRITE)) {
+			publishProgress(TypeFresh.DIALOG_REMOUNT_FAILED);
+			return null;
 		}
 		
 		try {
@@ -37,7 +42,7 @@ public class FileCopier implements Runnable {
 				if (srcPaths[i].equals(dstPaths[i])) {
 					continue;
 				}
-				handler.sendMessage(Message.obtain(handler, TypeFresh.PDIALOG_SET_TEXT, srcPaths[i]));
+				publishProgress(srcPaths[i]);
 				su = runtime.exec("/system/bin/su");
 				cmd = "cp -f " + srcPaths[i] + " " + dstPaths[i];
 				Log.i(TypeFresh.TAG,"Executing \"" + cmd + "\"");
@@ -60,24 +65,47 @@ public class FileCopier implements Runnable {
 				}
 			}
 
-			if (!TypeFresh.remount("ro")) {
-				handler.sendEmptyMessage(TypeFresh.DIALOG_REMOUNT_FAILED);
+			if (!TypeFresh.remount(TypeFresh.READ_ONLY)) {
+				publishProgress(TypeFresh.DIALOG_REMOUNT_FAILED);
 			}
 
-			handler.sendEmptyMessage(TypeFresh.TOAST_FONTS_APPLIED);
-
 			if (needReboot) {
-				handler.sendEmptyMessage(TypeFresh.DIALOG_NEED_REBOOT);
-			} else {
-				handler.sendEmptyMessage(TypeFresh.PDIALOG_DISMISS);
+				publishProgress(TypeFresh.DIALOG_NEED_REBOOT);
 			}
 		} catch (IOException e) {
 			Log.e(TypeFresh.TAG,e.toString());
-			handler.sendEmptyMessage(TypeFresh.DIALOG_NOT_ROOTED);
+			publishProgress(TypeFresh.DIALOG_NEED_ROOT);
 		} catch (InterruptedException e) {
 			Log.e(TypeFresh.TAG,e.toString());
 		}
-		handler.sendEmptyMessage(TypeFresh.PDIALOG_DISMISS);
+		return null;
+	}
+
+
+	@Override
+	protected void onProgressUpdate(Object... message) {
+		if (message[0] instanceof String) {
+			// a String will just update the ProgressDialog
+			mTypeFresh.mPDialog.setMessage((String)message[0]);
+		} else {
+			// otherwise we're calling another Dialog
+			mTypeFresh.showDialog(((Number)message[0]).intValue());
+		}
 	}
 	
+	@Override
+	protected void onPreExecute() {
+		mTypeFresh.showDialog(TypeFresh.DIALOG_PROGRESS);
+	}
+	
+	@Override
+    protected void onPostExecute(Void result) {
+		mTypeFresh.mPDialog.dismiss();
+		Toast.makeText(mTypeFresh, mToastText, Toast.LENGTH_SHORT).show();
+	}
+	
+	public void setActivity(TypeFresh typeFresh) {
+		mTypeFresh = typeFresh;
+	}
+
 }
