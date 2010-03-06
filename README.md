@@ -12,7 +12,7 @@ The future home of Tiny Fresh will be at [Pixelpod.net][3]
 Description
 -----------
 
-This app is for **systems with root access only**. It offers 4 main functions:
+This app is for **systems with root access only**. It offers 3 main functions:
 
   - Apply selected TTF fonts to the system
   - Backup system fonts to `/sdcard/Fonts`
