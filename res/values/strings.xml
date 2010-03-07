@@ -25,4 +25,14 @@
 <string name="reboot_cancel">Cancel</string>
 <string name="about_title">Type Fresh</string>
 <string name="about_message">Programmed by: openback\n   openback@pixelpod.net\n\nGraphics by: minusbaby\n   minusbaby@pixelpod.net\n\nfor Pixelpod INTERNATIONAL\n\nhttp://pixelpod.net</string>
+<string name="need_and_title">AndExplorer not found</string>
+<string name="dismiss">Dismiss</string>
+<string name="need_root_message">Error copying files. Are you rooted?</string>
+<string name="need_root_title">su command error</string>
+<string name="reboot_failed_title">Reboot error</string>
+<string name="reboot_failed_message">Could not reboot the system. Please do so manually.</string>
+<string name="mkdir_failed_title">Error</string>
+<string name="mkdir_failed_message">Could not create Fonts directory on sdcard</string>
+<string name="remount_failed_title">Error remounting</string>
+<string name="remount_failed_message">Could not remount /system</string>
 </resources>
