@@ -483,14 +483,7 @@ public class TypeFresh extends ListActivity {
      * @return <code>boolean</code> of whether it succeeded.
      */
     public static boolean remount(int readwrite) throws IOException,InterruptedException {
-        String type;
-
-        if (readwrite == READ_WRITE) {
-            type = "rw";
-        } else {
-            type = "ro";
-        }
-
+        String type = (readwrite == READ_WRITE) ? "rw" : "ro";
         Process su = Runtime.getRuntime().exec("/system/bin/su");
         Log.i(TAG,"Remounting /system " + type);
         String cmd = "mount -o " + type + ",remount /system\nexit\n";
