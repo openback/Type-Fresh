@@ -44,6 +44,7 @@ import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Environment;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -91,6 +92,8 @@ public class TypeFresh extends ListActivity {
     public ProgressDialog mPDialog = null;
     private FontListAdapter mAdapter = null;
     private static AsyncTask<Object, Object, Void> mFileCopier = null;
+    // TODO: use extStorage everywhere
+    public static String extStorage = Environment.getExternalStorageDirectory().getPath();
     
     /** Called when the activity is first created. */
     @Override
@@ -303,8 +306,11 @@ public class TypeFresh extends ListActivity {
             Log.e(TAG,"copyFonts: src and destination lenght mismatch. Quitting copy.");
             return;
         }
-
-        mFileCopier = new FileCopier(this);
+        
+        // No need to make a new FileCopier each time.
+        if (mFileCopier == null) {
+            mFileCopier = new FileCopier(this);
+        }
         mFileCopier.execute(src, dst, completedToast);
     }
 
@@ -444,6 +450,11 @@ public class TypeFresh extends ListActivity {
     protected void reboot() throws IOException {
         showDialog(DIALOG_REBOOT);
 
+        if (mFileCopier != null) {
+            // there should be no way the FileCopier thread is still running, so just kill it
+            mFileCopier = null;
+        }
+        
         try {
             Log.i(TAG,"Calling reboot");
             Process su = mRuntime.exec("/system/bin/su");
