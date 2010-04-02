@@ -7,7 +7,7 @@ Programmed by: *openback*&lt;[openback@pixelpod.net][1]&gt;
  
 Art by: *minusbaby* &lt;[hello@minusbaby.com][2]&gt;
 
-The future home of Tiny Fresh will be at [Pixelpod.net][3]
+The future home of Type Fresh will be at [Pixelpod.net][3]
 
 Description
 -----------
