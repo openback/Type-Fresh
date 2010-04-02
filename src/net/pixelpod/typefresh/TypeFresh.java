@@ -375,6 +375,8 @@ public class TypeFresh extends ListActivity {
                     R.string.remount_failed_title, R.string.remount_failed_message);
             break;
         case DIALOG_NEED_REBOOT:
+            // I want to reboot myself, but I haven't figured it out yet
+            /*
             dialog = (new AlertDialog.Builder(this))
                 .setIcon(android.R.drawable.ic_dialog_alert)
                 .setMessage(R.string.reboot_message)
@@ -396,6 +398,9 @@ public class TypeFresh extends ListActivity {
                     }
                 }
             ).create();
+            */
+            dialog = makeSimpleAlertDialog(android.R.drawable.ic_dialog_alert,
+                    R.string.reboot_title, R.string.reboot_message);
             break;
         case DIALOG_REBOOT:
             mPDialog = new ProgressDialog(this);

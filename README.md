@@ -5,7 +5,7 @@ Type Fresh
 
 Programmed by: *openback*&lt;[openback@pixelpod.net][1]&gt;
  
-Art by: *minusbaby* &lt;[minusbaby@pixelpod.net][2]&gt;
+Art by: *minusbaby* &lt;[hello@minusbaby.com][2]&gt;
 
 The future home of Tiny Fresh will be at [Pixelpod.net][3]
 
@@ -28,7 +28,7 @@ DroidSansFallback.ttf is the font that contains most of the international charac
 
 
   [1]: mailto:openback@pixelpod.net
-  [2]: mailto:minusbaby@pixelpod.net
+  [2]: mailto:hello@minusbaby.com
   [3]: http://pixelpod.net
   [4]: http://dejavu-fonts.org/
   [5]: http://forum.xda-developers.com/showthread.php?t=480964

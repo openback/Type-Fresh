@@ -117,7 +117,8 @@ public class FileCopier extends AsyncTask<Object, Object, Void> {
             }
 
             if (!TypeFresh.remount(TypeFresh.READ_ONLY)) {
-                publishProgress(TypeFresh.DIALOG_REMOUNT_FAILED);
+                // TODO: it ALWAYS fails right now, so stop yelling ;_;
+                // publishProgress(TypeFresh.DIALOG_REMOUNT_FAILED);
             }
 
             if (needReboot) {
