@@ -41,6 +41,10 @@ import android.widget.Toast;
  *
  */
 public class FileCopier extends AsyncTask<Object, Object, Void> {
+    // for remount()
+    public static final int READ_ONLY  = 0;
+    public static final int READ_WRITE = 1;
+
     private String mToastText = "";
     private String[] dstPaths = null;
     private String[] srcPaths = null;
@@ -71,7 +75,7 @@ public class FileCopier extends AsyncTask<Object, Object, Void> {
         Runtime runtime = Runtime.getRuntime();
 
         try {
-            if (!TypeFresh.remount(TypeFresh.READ_WRITE)) {
+            if (!remount(READ_WRITE)) {
                 publishProgress(TypeFresh.DIALOG_REMOUNT_FAILED);
                 return null;
             }
@@ -116,7 +120,7 @@ public class FileCopier extends AsyncTask<Object, Object, Void> {
                 su.destroy();
             }
 
-            if (!TypeFresh.remount(TypeFresh.READ_ONLY)) {
+            if (!remount(READ_ONLY)) {
                 // TODO: it ALWAYS fails right now, so stop yelling ;_;
                 // publishProgress(TypeFresh.DIALOG_REMOUNT_FAILED);
             }
@@ -165,6 +169,39 @@ public class FileCopier extends AsyncTask<Object, Object, Void> {
      */
     public void setActivity(TypeFresh typeFresh) {
         mTypeFresh = typeFresh;
+    }
+
+    // TODO: Error remounting: "mount: mounting /dev/block/mtdblock3 on /system failed:
+    // Device or resource busy"
+    /**
+     * Remounts /system read/write.
+     * 
+     * @param readwrite one of <code>READ_WRITE</code> or <code>READ_ONLY</code>.
+     * 
+     * @throws InterruptedException If our <code>su</code> process has a problem.
+     * @throws IOException If our <code>su</code> process has a problem.
+     * @return <code>boolean</code> of whether it succeeded.
+     */
+    public static boolean remount(int readwrite) throws IOException,InterruptedException {
+        String type = (readwrite == READ_WRITE) ? "rw" : "ro";
+        Process su = Runtime.getRuntime().exec("/system/bin/su");
+        Log.i(TypeFresh.TAG,"Remounting /system " + type);
+        String cmd = "mount -o " + type + ",remount /system\nexit\n";
+        su.getOutputStream().write(cmd.getBytes());
+        
+        if (su.waitFor() != 0) {
+            BufferedReader br
+                    = new BufferedReader(new InputStreamReader(su.getErrorStream()), 200);
+            String line;
+            while((line = br.readLine()) != null) {
+                Log.e(TypeFresh.TAG,"Error remounting: \"" + line + "\"");
+            }
+            Log.e(TypeFresh.TAG, "Could not remount, returning");
+            return false;
+        } else {
+            Log.i(TypeFresh.TAG,"Remounted /system " + type);
+        }
+        return true;
     }
 
 }

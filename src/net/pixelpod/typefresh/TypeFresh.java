@@ -55,7 +55,7 @@ import android.widget.ListView;
  * Insert comments.
  * 
  * @author Timothy Caraballo
- * @version 0.8
+ * @version 0.9.1
  */
 public class TypeFresh extends ListActivity {
     // Tag for Log use
@@ -81,9 +81,6 @@ public class TypeFresh extends ListActivity {
     public static final int DIALOG_REMOUNT_FAILED   = 10;
     public static final int DIALOG_PROGRESS         = 11;
     public static final int PDIALOG_DISMISS         = 12;
-    // for reboot()
-    public static final int READ_ONLY  = 0;
-    public static final int READ_WRITE = 1;
     
     private String[] fonts;
     private String[] sysFontPaths;
@@ -283,7 +280,7 @@ public class TypeFresh extends ListActivity {
     }    
 
     /**
-     * Initiate copying of selected fonts to the system.
+     * Initiates copying of selected fonts to the system.
      */
     protected void applySelections() {
         String[] sPaths = mAdapter.getPaths();
@@ -297,7 +294,7 @@ public class TypeFresh extends ListActivity {
      * @param dialogTitle    <code>String</code> for the displayed <code>ProgressDialog</code>.
      * @param completedToast <code>String</code> to show in <code>Toast</code> when process is
      *                           done.
-     * @param src            <code>String[]</code> of src paths.
+     * @param src            <code>String[]</code> of source paths.
      * @param dst            <code>String</code> of destination paths, same length as src.
      */
     protected void copyFiles(String dialogTitle, String completedToast,
@@ -307,10 +304,7 @@ public class TypeFresh extends ListActivity {
             return;
         }
         
-        // No need to make a new FileCopier each time.
-        if (mFileCopier == null) {
-            mFileCopier = new FileCopier(this);
-        }
+        mFileCopier = new FileCopier(this);
         mFileCopier.execute(src, dst, completedToast);
     }
 
@@ -450,7 +444,7 @@ public class TypeFresh extends ListActivity {
     /**
      * Reboots the system.
      * 
-     * @throws IOException If our su process has a problem.
+     * @throws IOException If our <code>su</code> process has a problem.
      */
     protected void reboot() throws IOException {
         showDialog(DIALOG_REBOOT);
@@ -473,39 +467,5 @@ public class TypeFresh extends ListActivity {
         if (mPDialog.isShowing()) {
             dismissDialog(DIALOG_PROGRESS);
         }
-    }
-
-    // TODO: Error remounting: "mount: mounting /dev/block/mtdblock3 on /system failed:
-    // Device or resource busy"
-    /**
-     * Remounts /system read/write.
-     * 
-     * @param readwrite one of <code>TypeFresh.READ_WRITE</code> or
-     *         <code>TypeFresh.READ_ONLY</code>.
-     * 
-     * @throws InterruptedException If our su process has a problem.
-     * @throws IOException If our su process has a problem.
-     * @return <code>boolean</code> of whether it succeeded.
-     */
-    public static boolean remount(int readwrite) throws IOException,InterruptedException {
-        String type = (readwrite == READ_WRITE) ? "rw" : "ro";
-        Process su = Runtime.getRuntime().exec("/system/bin/su");
-        Log.i(TAG,"Remounting /system " + type);
-        String cmd = "mount -o " + type + ",remount /system\nexit\n";
-        su.getOutputStream().write(cmd.getBytes());
-        
-        if (su.waitFor() != 0) {
-            BufferedReader br
-                    = new BufferedReader(new InputStreamReader(su.getErrorStream()), 200);
-            String line;
-            while((line = br.readLine()) != null) {
-                Log.e(TAG,"Error remounting: \"" + line + "\"");
-            }
-            Log.e(TAG, "Could not remount, returning");
-            return false;
-        } else {
-            Log.i(TAG,"Remounted /system " + type);
-        }
-        return true;
     }
 }
