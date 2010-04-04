@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+	<string name="app_name">Type Fresh</string>
+	<string name="need_and_message">It seems you do not have AndExplorer installed. This is required to be able to choose fonts. Would you like to switch to the Market now to install it?</string>
+	<string name="need_and_ok">Go to Market</string>
+	<string name="need_and_cancel">辞める</string>
+	<string name="no_market">Market not found</string>
+	<string name="market_alert_message">Market was not found on your system.</string>
+	<string name="firstrun_message">Thank you for using Type Fresh! As with any program that does work as root, you should perform a Nandroid backup first. Also, use the menu to create a backup of your existing system fonts so that you can restore them at any time.\n\nThis program requires AndExplorer for file selections, and is available on the Android Market.</string>
+	<string name="firstrun_title">ようこそType Fresh！</string>
+	<string name="reboot_title">リブート required</string>
+	<string name="reboot_message">Your system needs to be rebooted to load your new fonts. Please do so as soon as possible.</string>
+	<string name="reboot_ok">はい</string>
+	<string name="reboot_cancel">いいえ</string>
+	<string name="about_title">Type Fresh v0.9</string>
+	<string name="about_message">Programmed by: Timothy Caraballo\n   openback@pixelpod.net\n\nGraphics by: Richard A. Caraballo\n   hello@minusbaby.com\n\nfor Pixelpod INTERNATIONAL\n\nhttp://pixelpod.net</string>
+	<string name="need_and_title">AndExplorer not found</string>
+	<string name="dismiss">キャンセル</string>
+	<string name="need_root_message">エラー： ファイルをコピーできませんでした。　ルートアクセスがありますか?</string>
+	<string name="need_root_title">suコマンドエラー</string>
+	<string name="reboot_failed_title">リブート エラー</string>
+	<string name="reboot_failed_message">リブートするできませんでした。　手動でリブートして下さい。</string>
+	<string name="mkdir_failed_title">エラー</string>
+	<string name="mkdir_failed_message">Could not create Fonts directory on sdcard</string>
+	<string name="remount_failed_title">リマウントエラー</string>
+	<string name="remount_failed_message">/systemをリマウントできませんでした。</string>
+	<string name="menu_apply">Apply fonts</string>
+	<string name="menu_backup">バックアップ fonts</string>
+	<string name="menu_restore">Restore fonts</string>
+	<string name="menu_reset">Reset パス</string>
+	<string name="menu_about">About</string>
+	<string name="select_font">Select a font</string>
+</resources>
+

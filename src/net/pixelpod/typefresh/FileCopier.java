@@ -26,6 +26,7 @@
 package net.pixelpod.typefresh;
 
 import java.io.BufferedReader;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 
@@ -45,10 +46,13 @@ public class FileCopier extends AsyncTask<Object, Object, Void> {
     public static final int READ_ONLY  = 0;
     public static final int READ_WRITE = 1;
 
+    // holds block that /system is located on
+    private static String systemBlock = null;
     private String mToastText = "";
     private String[] dstPaths = null;
     private String[] srcPaths = null;
     private TypeFresh mTypeFresh = null;
+    private boolean success;
 
     /**
      * Class constructor.
@@ -73,6 +77,7 @@ public class FileCopier extends AsyncTask<Object, Object, Void> {
         boolean needReboot = false;
         Process su = null;
         Runtime runtime = Runtime.getRuntime();
+        success = false;
 
         try {
             if (!remount(READ_WRITE)) {
@@ -109,12 +114,16 @@ public class FileCopier extends AsyncTask<Object, Object, Void> {
                     while((line = br.readLine()) != null) {
                         Log.e(TypeFresh.TAG,"Error copying: \"" + line + "\"");                                
                     }
+                    
+                    success = false;
                     // even if there was an error, we want to continue to remount the system
                 } else {
                     // If we've overwritten any of the core fonts, we need to reboot
                     if (dstPaths[i].indexOf("/system/fonts/Droid") == 0) {
                         needReboot = true;
                     }
+                    
+                    success = true;
                 }
                 // clear up references, since we're done
                 su.destroy();
@@ -158,7 +167,9 @@ public class FileCopier extends AsyncTask<Object, Object, Void> {
     @Override
     protected void onPostExecute(Void result) {
         mTypeFresh.mPDialog.dismiss();
-        Toast.makeText(mTypeFresh, mToastText, Toast.LENGTH_SHORT).show();
+        if (success) {
+            Toast.makeText(mTypeFresh, mToastText, Toast.LENGTH_SHORT).show();
+        }
     }
     
     /**
@@ -185,8 +196,11 @@ public class FileCopier extends AsyncTask<Object, Object, Void> {
     public static boolean remount(int readwrite) throws IOException,InterruptedException {
         String type = (readwrite == READ_WRITE) ? "rw" : "ro";
         Process su = Runtime.getRuntime().exec("/system/bin/su");
+        String systemBlock = systemLocation();
+
         Log.i(TypeFresh.TAG,"Remounting /system " + type);
-        String cmd = "mount -o " + type + ",remount /system\nexit\n";
+        String cmd = "mount -o remount," + type + " " + systemBlock + " /system\nexit\n";
+        Log.i(TypeFresh.TAG, "Executing :" + cmd);
         su.getOutputStream().write(cmd.getBytes());
         
         if (su.waitFor() != 0) {
@@ -202,6 +216,37 @@ public class FileCopier extends AsyncTask<Object, Object, Void> {
             Log.i(TypeFresh.TAG,"Remounted /system " + type);
         }
         return true;
+    }
+
+    /**
+     * Locates the block on which /system is located and stores it in a static variable to ease
+     * computation.
+     * 
+     * @throws IOException If we have a problem reading <code>/etc/fstab</code>.
+     * @return <code>String</code> of the block name, or <code>null</code>.
+     */
+    protected static String systemLocation() throws IOException {
+        if (systemBlock != null) {
+            return systemBlock;
+        }
+
+        try {
+            BufferedReader br = new BufferedReader(new FileReader("/etc/fstab"));
+            String line;
+
+            while((line = br.readLine()) != null) {
+                // look for /system
+                if (line.contains("/system")) {
+                    systemBlock =  line.substring(0, line.indexOf("\t"));
+                    Log.i(TypeFresh.TAG,"Found /system mounted at " + systemBlock);
+                    return systemBlock;
+                }
+            }
+        } catch (IOException e) {
+            throw e;
+        }
+
+        return null;
     }
 
 }

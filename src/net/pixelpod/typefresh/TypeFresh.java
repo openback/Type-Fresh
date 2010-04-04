@@ -25,10 +25,8 @@
 
 package net.pixelpod.typefresh;
 
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.net.URI;
 import java.util.Arrays;
 
@@ -162,7 +160,7 @@ public class TypeFresh extends ListActivity {
         intent.setAction(Intent.ACTION_PICK);
         Uri startDir = Uri.fromFile(new File("/sdcard/Fonts"));
         intent.setDataAndType(startDir, "vnd.android.cursor.dir/lysesoft.andexplorer.file");
-        intent.putExtra("explorer_title", "Select a font");
+        intent.putExtra("explorer_title", getString(R.string.select_font));
         intent.putExtra("browser_title_background_color", "440000AA");
         intent.putExtra("browser_title_foreground_color", "FFFFFFFF");
         intent.putExtra("browser_list_background_color", "00000066");
@@ -196,11 +194,11 @@ public class TypeFresh extends ListActivity {
     
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        menu.add(0, MENU_APPLY,   0, "Apply fonts");
-        menu.add(0, MENU_BACKUP,  0, "Backup fonts");
-        menu.add(0, MENU_RESTORE, 0, "Restore fonts").setIcon(android.R.drawable.ic_menu_revert);
-        menu.add(0, MENU_RESET,   0, "Reset paths").setIcon(R.drawable.ic_menu_clear_playlist);
-        menu.add(0, MENU_ABOUT,   0, "About").setIcon(android.R.drawable.ic_menu_help);
+        menu.add(0, MENU_APPLY,   0, R.string.menu_apply);
+        menu.add(0, MENU_BACKUP,  0, R.string.menu_backup);
+        menu.add(0, MENU_RESTORE, 0, R.string.menu_restore).setIcon(android.R.drawable.ic_menu_revert);
+        menu.add(0, MENU_RESET,   0, R.string.menu_reset).setIcon(R.drawable.ic_menu_clear_playlist);
+        menu.add(0, MENU_ABOUT,   0, R.string.menu_about).setIcon(android.R.drawable.ic_menu_help);
         return true;
     }
     
@@ -256,7 +254,7 @@ public class TypeFresh extends ListActivity {
             dPaths[i] = "/sdcard/Fonts/" + fonts[i];
         }
 
-        copyFiles("Backing up Fonts", "Fonts backed up to /sdcard/Fonts", sysFontPaths, dPaths);
+        copyFiles(R.string.diag_backing_up, R.string.toast_backed_up, sysFontPaths, dPaths);
     }
     
     /**
@@ -268,7 +266,7 @@ public class TypeFresh extends ListActivity {
             sPaths[i] = "/sdcard/Fonts/" + fonts[i];
         }
 
-        copyFiles("Restoring Fonts", "Fonts restored from SD card", sPaths, sysFontPaths);
+        copyFiles(R.string.diag_restoring , R.string.toast_restored, sPaths, sysFontPaths);
         resetSelections();
     }
     
@@ -284,28 +282,30 @@ public class TypeFresh extends ListActivity {
      */
     protected void applySelections() {
         String[] sPaths = mAdapter.getPaths();
-        copyFiles("Applying Fonts", "Your fonts have been applied", sPaths, sysFontPaths);
+        copyFiles( R.string.diag_applying, R.string.toast_applied, sPaths, sysFontPaths);
         
     }    
 
     /**
      * Copies files from each element in src to the corresponding dst.
      * 
-     * @param dialogTitle    <code>String</code> for the displayed <code>ProgressDialog</code>.
-     * @param completedToast <code>String</code> to show in <code>Toast</code> when process is
-     *                           done.
+     * @param dialogTitle    <code>int</code> String resource for the displayed
+     *                          <code>ProgressDialog</code>'s title.
+     * @param completedToast <code>int</code> String resource to show in <code>Toast</code> when
+     *                          the process is done.
      * @param src            <code>String[]</code> of source paths.
      * @param dst            <code>String</code> of destination paths, same length as src.
      */
-    protected void copyFiles(String dialogTitle, String completedToast,
+    // TODO: use dialogTitle
+    protected void copyFiles(int dialogTitle, int completedToast,
                                String[] src, String[] dst) {
         if (src.length != dst.length) {
-            Log.e(TAG,"copyFonts: src and destination lenght mismatch. Quitting copy.");
+            Log.e(TAG,"copyFonts: src and destination length mismatch. Quitting copy.");
             return;
         }
         
         mFileCopier = new FileCopier(this);
-        mFileCopier.execute(src, dst, completedToast);
+        mFileCopier.execute(src, dst, getString(completedToast));
     }
 
     
@@ -398,15 +398,15 @@ public class TypeFresh extends ListActivity {
             break;
         case DIALOG_REBOOT:
             mPDialog = new ProgressDialog(this);
-            mPDialog.setTitle("Rebooting");
-            mPDialog.setMessage("Please Wait...");
+            mPDialog.setTitle(getString(R.string.diag_rebooting));
+            mPDialog.setMessage(getString(R.string.please_wait));
             mPDialog.setCancelable(false);
             mPDialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
             dialog = mPDialog;
             break;
         case DIALOG_PROGRESS:
             mPDialog = new ProgressDialog(this);
-            mPDialog.setTitle("Copying fonts");
+            mPDialog.setTitle(getString(R.string.diag_copying));
             mPDialog.setCancelable(false);
             mPDialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
             dialog = mPDialog;

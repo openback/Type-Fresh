@@ -3,9 +3,9 @@ Type Fresh
 
 *An Android app that allows users to change their system fonts.*
 
-Programmed by: *openback*&lt;[openback@pixelpod.net][1]&gt;
+Programmed by: *Timothy Caraballo*&lt;[openback@pixelpod.net][1]&gt;
  
-Art by: *minusbaby* &lt;[hello@minusbaby.com][2]&gt;
+Art by: *Richard A. Caraballo* &lt;[hello@minusbaby.com][2]&gt;
 
 The future home of Type Fresh will be at [Pixelpod.net][3]
 
