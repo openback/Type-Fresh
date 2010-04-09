@@ -39,4 +39,7 @@
     <string name="diag_copying">Copying fonts</string>
     <string name="diag_rebooting">Rebooting</string>
     <string name="please_wait">Please wait...</string>
+    <string name="context_copy">Copy path</string>
+    <string name="context_paste">Paste path</string>    
+    <string name="context_clear">Clear path</string>
 </resources>

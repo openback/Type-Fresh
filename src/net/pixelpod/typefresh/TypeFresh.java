@@ -43,10 +43,14 @@ import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Environment;
+import android.text.ClipboardManager;
 import android.util.Log;
+import android.view.ContextMenu;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.ContextMenu.ContextMenuInfo;
+import android.widget.AdapterView;
 import android.widget.ListView;
 
 /**
@@ -67,19 +71,24 @@ public class TypeFresh extends ListActivity {
     public static final int MENU_RESET   = 3;
     public static final int MENU_ABOUT   = 4;
     // Dialogs
-    public static final int DIALOG_FIRSTRUN         =  1;
-    public static final int DIALOG_ABOUT            =  2;
-    public static final int DIALOG_NEED_AND         =  3;
-    public static final int DIALOG_NEED_REBOOT      =  4;
-    public static final int DIALOG_REBOOT           =  5;
-    public static final int DIALOG_REBOOT_FAILED    =  6;
-    public static final int DIALOG_NEED_ROOT        =  7;
-    public static final int DIALOG_MKDIR_FAILED     =  8;
-    public static final int DIALOG_NO_MARKET        =  9;
-    public static final int DIALOG_REMOUNT_FAILED   = 10;
-    public static final int DIALOG_PROGRESS         = 11;
-    public static final int PDIALOG_DISMISS         = 12;
+    public static final int DIALOG_FIRSTRUN         =  101;
+    public static final int DIALOG_ABOUT            =  102;
+    public static final int DIALOG_NEED_AND         =  103;
+    public static final int DIALOG_NEED_REBOOT      =  104;
+    public static final int DIALOG_REBOOT           =  105;
+    public static final int DIALOG_REBOOT_FAILED    =  106;
+    public static final int DIALOG_NEED_ROOT        =  107;
+    public static final int DIALOG_MKDIR_FAILED     =  108;
+    public static final int DIALOG_NO_MARKET        =  109;
+    public static final int DIALOG_REMOUNT_FAILED   =  110;
+    public static final int DIALOG_PROGRESS         =  111;
+    public static final int PDIALOG_DISMISS         =  112;
+    // ContextMenu selections
+    public static final int CONTEXT_COPY  = 201;
+    public static final int CONTEXT_PASTE = 202;
+    public static final int CONTEXT_CLEAR = 203;
     
+    private static String mLastFolder = null;
     private String[] fonts;
     private String[] sysFontPaths;
     private int mListPosition;
@@ -87,7 +96,7 @@ public class TypeFresh extends ListActivity {
     public ProgressDialog mPDialog = null;
     private FontListAdapter mAdapter = null;
     private static AsyncTask<Object, Object, Void> mFileCopier = null;
-    // TODO: use extStorage everywhere
+    private static ClipboardManager mClipboard = null;
     public static String extStorage = Environment.getExternalStorageDirectory().getPath();
     
     /** Called when the activity is first created. */
@@ -95,7 +104,8 @@ public class TypeFresh extends ListActivity {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.main);
-
+        mClipboard = (ClipboardManager)getSystemService(CLIPBOARD_SERVICE);
+        
         File fontsDir = new File("/system/fonts");
         fonts = fontsDir.list();
         // remove all file references for the sake of remounting
@@ -104,7 +114,7 @@ public class TypeFresh extends ListActivity {
         Arrays.sort(fonts);
         sysFontPaths = new String[fonts.length];
         
-        File sdFonts = new File("/sdcard/Fonts");
+        File sdFonts = new File(extStorage + "/Fonts");
         if (!sdFonts.exists()) {
             try {
                 sdFonts.mkdir();
@@ -157,8 +167,14 @@ public class TypeFresh extends ListActivity {
     public void onListItemClick(ListView parent, View v, int position, long id) {
         mListPosition = position; 
         Intent intent = new Intent();
+        Uri startDir = null;
+        
         intent.setAction(Intent.ACTION_PICK);
-        Uri startDir = Uri.fromFile(new File("/sdcard/Fonts"));
+        if (mLastFolder == null) {
+            startDir = Uri.fromFile(new File(extStorage + "/Fonts"));
+        } else {
+            startDir = Uri.fromFile(new File(mLastFolder));
+        }
         intent.setDataAndType(startDir, "vnd.android.cursor.dir/lysesoft.andexplorer.file");
         intent.putExtra("explorer_title", getString(R.string.select_font));
         intent.putExtra("browser_title_background_color", "440000AA");
@@ -175,7 +191,7 @@ public class TypeFresh extends ListActivity {
             showDialog(DIALOG_NEED_AND);
         }
     }
-    
+
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent intent) {
         if (requestCode == PICK_REQUEST_CODE) {
@@ -184,12 +200,50 @@ public class TypeFresh extends ListActivity {
                 if (uri != null) {
                     String path = uri.toString();
                     if (path.toLowerCase().startsWith("file://")) {
-                        path = (new File(URI.create(path))).getAbsolutePath();
+                        File fontFile = new File(URI.create(path)); 
+                        path = fontFile.getAbsolutePath();
                         mAdapter.setFontPath(mListPosition, path);
+                        mLastFolder = fontFile.getParent();
                     }
                 }
             }
         }
+    }
+    
+    @Override
+    public void onCreateContextMenu(ContextMenu menu, View v, ContextMenuInfo menuInfo) {
+        AdapterView.AdapterContextMenuInfo info = (AdapterView.AdapterContextMenuInfo) menuInfo;
+        menu.setHeaderTitle(fonts[info.position]);
+
+        // did the user set this path?
+        if ( ! (mAdapter.getPaths())[info.position].equals(sysFontPaths[info.position])) {
+            menu.add(Menu.NONE, CONTEXT_COPY,  1, R.string.context_copy);
+            menu.add(Menu.NONE, CONTEXT_CLEAR, 3, R.string.context_clear);
+        }
+        
+        // is there a valid path in the clipboard?
+        if (mClipboard.hasText() && mClipboard.getText().toString().matches("^/.+?.ttf$")) {
+            menu.add(Menu.NONE, CONTEXT_PASTE, 2, R.string.context_paste);
+        }
+    }
+    
+    @Override
+    public boolean onContextItemSelected(MenuItem item) {
+        AdapterView.AdapterContextMenuInfo info = (AdapterView.AdapterContextMenuInfo)item.getMenuInfo();
+
+        switch(item.getItemId()) {
+        case CONTEXT_COPY:
+            mClipboard.setText( (mAdapter.getPaths())[info.position] );
+            break;
+        case CONTEXT_PASTE:
+            mAdapter.setFontPath(info.position, (String)mClipboard.getText());
+            break;
+        case CONTEXT_CLEAR:
+            mAdapter.setFontPath(info.position, sysFontPaths[info.position]);
+            break;
+        }
+
+        return true;
     }
     
     @Override
@@ -213,7 +267,7 @@ public class TypeFresh extends ListActivity {
         boolean backupExists = true;
         for (int i = 0; i < mAdapter.getFonts().length; i++) {
             // check if any existing fonts are not backed up
-            if (!(new File("/sdcard/Fonts/" + fonts[i]).exists())) {
+            if (!(new File(extStorage + "/Fonts/" + fonts[i]).exists())) {
                 backupExists = false;
                 break;
             }
@@ -251,7 +305,7 @@ public class TypeFresh extends ListActivity {
     protected void backupFonts() {
         String[] dPaths = new String[fonts.length];
         for(int i = 0; i < fonts.length; i++) {
-            dPaths[i] = "/sdcard/Fonts/" + fonts[i];
+            dPaths[i] = extStorage + "/Fonts/" + fonts[i];
         }
 
         copyFiles(R.string.diag_backing_up, R.string.toast_backed_up, sysFontPaths, dPaths);
@@ -263,7 +317,7 @@ public class TypeFresh extends ListActivity {
     protected void restoreFonts() {
         String[] sPaths = new String[fonts.length];
         for(int i = 0; i < sPaths.length; i++) {
-            sPaths[i] = "/sdcard/Fonts/" + fonts[i];
+            sPaths[i] = extStorage + "/Fonts/" + fonts[i];
         }
 
         copyFiles(R.string.diag_restoring , R.string.toast_restored, sPaths, sysFontPaths);

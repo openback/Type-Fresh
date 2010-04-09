@@ -75,25 +75,29 @@ public class FileCopier extends AsyncTask<Object, Object, Void> {
         Looper.prepare();
         String cmd = null;
         boolean needReboot = false;
+        boolean remountRequired = dstPaths[0].indexOf("/system/") == 0; 
+
         Process su = null;
         Runtime runtime = Runtime.getRuntime();
         success = false;
 
-        try {
-            if (!remount(READ_WRITE)) {
+        if (remountRequired) { 
+            try {
+                if (!remount(READ_WRITE)) {
+                    publishProgress(TypeFresh.DIALOG_REMOUNT_FAILED);
+                    return null;
+                }
+            } catch (IOException e) {
+                Log.e(TypeFresh.TAG, e.toString());
+                publishProgress(TypeFresh.DIALOG_REMOUNT_FAILED);
+                return null;
+            } catch (InterruptedException e) {
+                Log.e(TypeFresh.TAG, e.toString());
                 publishProgress(TypeFresh.DIALOG_REMOUNT_FAILED);
                 return null;
             }
-        } catch (IOException e) {
-            Log.e(TypeFresh.TAG, e.toString());
-            publishProgress(TypeFresh.DIALOG_REMOUNT_FAILED);
-            return null;
-        } catch (InterruptedException e) {
-            Log.e(TypeFresh.TAG, e.toString());
-            publishProgress(TypeFresh.DIALOG_REMOUNT_FAILED);
-            return null;
         }
-        
+            
         try {
             for (int i = 0; i < srcPaths.length; i++) {
                 if (srcPaths[i].equals(dstPaths[i])) {
@@ -129,9 +133,11 @@ public class FileCopier extends AsyncTask<Object, Object, Void> {
                 su.destroy();
             }
 
-            if (!remount(READ_ONLY)) {
-                // TODO: it ALWAYS fails right now, so stop yelling ;_;
-                // publishProgress(TypeFresh.DIALOG_REMOUNT_FAILED);
+            if (remountRequired) {
+                if (!remount(READ_ONLY)) {
+                    // TODO: it ALWAYS fails right now, so stop yelling ;_;
+                    // publishProgress(TypeFresh.DIALOG_REMOUNT_FAILED);
+                }
             }
 
             if (needReboot) {

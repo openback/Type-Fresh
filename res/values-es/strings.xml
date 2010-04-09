@@ -30,4 +30,16 @@
 	<string name="menu_reset">Reset paths</string>
 	<string name="menu_about">About</string>
 	<string name="select_font">Select a font</string>
+    <string name="diag_backing_up">Backing up fonts</string>
+    <string name="toast_backed_up">Fonts backed up to /sdcard/Fonts</string>
+    <string name="diag_applying">Applying Fonts</string>
+    <string name="toast_applied">Your fonts have been applied</string>
+    <string name="diag_restoring">Restoring Fonts</string>
+    <string name="toast_restored">Fonts restored from SD card</string>
+    <string name="diag_copying">Copying fonts</string>
+    <string name="diag_rebooting">Rebooting</string>
+    <string name="please_wait">Please wait...</string>
+    <string name="context_copy">Copy path</string>
+    <string name="context_paste">Paste path</string>    
+    <string name="context_clear">Clear path</string>
 </resources>
