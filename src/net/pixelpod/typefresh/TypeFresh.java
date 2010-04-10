@@ -88,15 +88,15 @@ public class TypeFresh extends ListActivity {
     public static final int CONTEXT_PASTE = 202;
     public static final int CONTEXT_CLEAR = 203;
     
-    private static String mLastFolder = null;
+    private static String lastFolder = null;
     private String[] fonts;
     private String[] sysFontPaths;
-    private int mListPosition;
-    private final Runtime mRuntime = Runtime.getRuntime();
-    public ProgressDialog mPDialog = null;
-    private FontListAdapter mAdapter = null;
-    private static AsyncTask<Object, Object, Void> mFileCopier = null;
-    private static ClipboardManager mClipboard = null;
+    private int listPosition;
+    private final Runtime runtime = Runtime.getRuntime();
+    public ProgressDialog progressDialog = null;
+    private FontListAdapter adapter = null;
+    private static AsyncTask<Object, Object, Void> fileCopier = null;
+    private static ClipboardManager clipboard = null;
     public static String extStorage = Environment.getExternalStorageDirectory().getPath();
     
     /** Called when the activity is first created. */
@@ -104,7 +104,7 @@ public class TypeFresh extends ListActivity {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.main);
-        mClipboard = (ClipboardManager)getSystemService(CLIPBOARD_SERVICE);
+        clipboard = (ClipboardManager)getSystemService(CLIPBOARD_SERVICE);
         
         File fontsDir = new File("/system/fonts");
         fonts = fontsDir.list();
@@ -124,128 +124,44 @@ public class TypeFresh extends ListActivity {
             }
         }
 
+        // build array of installed font paths
         for (int i = 0; i < fonts.length; i++) {
-            // check if any existing fonts are not backed up
             sysFontPaths[i] = "/system/fonts/" + fonts[i];
         }
         
         setListAdapter(new FontListAdapter(this, fonts));
-        registerForContextMenu(getListView());
-        mAdapter = (FontListAdapter) this.getListAdapter();
+        adapter = (FontListAdapter) this.getListAdapter();
         
         // restore paths on rotate
         if ((savedInstanceState != null) && savedInstanceState.containsKey("paths")) {
-            mAdapter.setFontPaths(savedInstanceState.getStringArray("paths"));
+            adapter.setPaths(savedInstanceState.getStringArray("paths"));
         }
 
-        if ((mFileCopier != null) && (mFileCopier.getStatus() != AsyncTask.Status.FINISHED)) {
+        if ((fileCopier != null) && (fileCopier.getStatus() != AsyncTask.Status.FINISHED)) {
             // we have a running thread, so tell it about our new activity
-            ((FileCopier) mFileCopier).setActivity(this);
+            ((FileCopier) fileCopier).setActivity(this);
             return;
         }
 
         // do we need to show the welcome screen?
         SharedPreferences settings = getPreferences(Activity.MODE_PRIVATE);
         if (settings.getBoolean("firstrun", true)) {
-
-            // Not firstrun anymore, so store that
+            // Not first run anymore, so store that
             SharedPreferences.Editor editor = settings.edit();
             editor.putBoolean("firstrun", false);
             editor.commit();
-
             showDialog(DIALOG_FIRSTRUN);
         }
+        
+        registerForContextMenu(getListView());
     }
 
     @Override
     public void onSaveInstanceState(Bundle bundle) {
         // store the selected fonts
-        bundle.putStringArray("paths", mAdapter.fontPaths);
+        bundle.putStringArray("paths", adapter.fontPaths);
     }
 
-    @Override
-    public void onListItemClick(ListView parent, View v, int position, long id) {
-        mListPosition = position; 
-        Intent intent = new Intent();
-        Uri startDir = null;
-        
-        intent.setAction(Intent.ACTION_PICK);
-        if (mLastFolder == null) {
-            startDir = Uri.fromFile(new File(extStorage + "/Fonts"));
-        } else {
-            startDir = Uri.fromFile(new File(mLastFolder));
-        }
-        intent.setDataAndType(startDir, "vnd.android.cursor.dir/lysesoft.andexplorer.file");
-        intent.putExtra("explorer_title", getString(R.string.select_font));
-        intent.putExtra("browser_title_background_color", "440000AA");
-        intent.putExtra("browser_title_foreground_color", "FFFFFFFF");
-        intent.putExtra("browser_list_background_color", "00000066");
-        intent.putExtra("browser_list_fontscale", "120%");
-        intent.putExtra("browser_list_layout", "0");
-        intent.putExtra("browser_filter_extension_whitelist", "*.ttf");
-        
-        try {
-            startActivityForResult(intent, PICK_REQUEST_CODE);
-        } catch (ActivityNotFoundException e) {
-            Log.e(TAG, e.toString());
-            showDialog(DIALOG_NEED_AND);
-        }
-    }
-
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent intent) {
-        if (requestCode == PICK_REQUEST_CODE) {
-            if (resultCode == RESULT_OK) {
-                Uri uri = intent.getData();
-                if (uri != null) {
-                    String path = uri.toString();
-                    if (path.toLowerCase().startsWith("file://")) {
-                        File fontFile = new File(URI.create(path)); 
-                        path = fontFile.getAbsolutePath();
-                        mAdapter.setFontPath(mListPosition, path);
-                        mLastFolder = fontFile.getParent();
-                    }
-                }
-            }
-        }
-    }
-    
-    @Override
-    public void onCreateContextMenu(ContextMenu menu, View v, ContextMenuInfo menuInfo) {
-        AdapterView.AdapterContextMenuInfo info = (AdapterView.AdapterContextMenuInfo) menuInfo;
-        menu.setHeaderTitle(fonts[info.position]);
-
-        // did the user set this path?
-        if ( ! (mAdapter.getPaths())[info.position].equals(sysFontPaths[info.position])) {
-            menu.add(Menu.NONE, CONTEXT_COPY,  1, R.string.context_copy);
-            menu.add(Menu.NONE, CONTEXT_CLEAR, 3, R.string.context_clear);
-        }
-        
-        // is there a valid path in the clipboard?
-        if (mClipboard.hasText() && mClipboard.getText().toString().matches("^/.+?.ttf$")) {
-            menu.add(Menu.NONE, CONTEXT_PASTE, 2, R.string.context_paste);
-        }
-    }
-    
-    @Override
-    public boolean onContextItemSelected(MenuItem item) {
-        AdapterView.AdapterContextMenuInfo info = (AdapterView.AdapterContextMenuInfo)item.getMenuInfo();
-
-        switch(item.getItemId()) {
-        case CONTEXT_COPY:
-            mClipboard.setText( (mAdapter.getPaths())[info.position] );
-            break;
-        case CONTEXT_PASTE:
-            mAdapter.setFontPath(info.position, (String)mClipboard.getText());
-            break;
-        case CONTEXT_CLEAR:
-            mAdapter.setFontPath(info.position, sysFontPaths[info.position]);
-            break;
-        }
-
-        return true;
-    }
-    
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         menu.add(0, MENU_APPLY,   0, R.string.menu_apply);
@@ -259,13 +175,13 @@ public class TypeFresh extends ListActivity {
     @Override
     public boolean onPrepareOptionsMenu(Menu menu) {
         // if the user hasn't selected any fonts, the next two menu items are useless
-        boolean pathsSet = !Arrays.equals(sysFontPaths, mAdapter.getPaths());
+        boolean pathsSet = !Arrays.equals(sysFontPaths, adapter.getPaths());
         menu.findItem(MENU_APPLY).setEnabled(pathsSet);
         menu.findItem(MENU_RESET).setEnabled(pathsSet);
 
         // Check for a backup to see if we should enable the restore option
         boolean backupExists = true;
-        for (int i = 0; i < mAdapter.getFonts().length; i++) {
+        for (int i = 0; i < fonts.length; i++) {
             // check if any existing fonts are not backed up
             if (!(new File(extStorage + "/Fonts/" + fonts[i]).exists())) {
                 backupExists = false;
@@ -310,7 +226,92 @@ public class TypeFresh extends ListActivity {
 
         copyFiles(R.string.diag_backing_up, R.string.toast_backed_up, sysFontPaths, dPaths);
     }
+    @Override
+    public void onListItemClick(ListView parent, View v, int position, long id) {
+        listPosition = position; 
+        Intent intent = new Intent();
+        Uri startDir = null;
+        
+        intent.setAction(Intent.ACTION_PICK);
+        if (lastFolder == null) {
+            startDir = Uri.fromFile(new File(extStorage + "/Fonts"));
+        } else {
+            startDir = Uri.fromFile(new File(lastFolder));
+        }
+        intent.setDataAndType(startDir, "vnd.android.cursor.dir/lysesoft.andexplorer.file");
+        intent.putExtra("explorer_title", getString(R.string.select_font));
+        intent.putExtra("browser_title_background_color", "440000AA");
+        intent.putExtra("browser_title_foreground_color", "FFFFFFFF");
+        intent.putExtra("browser_list_background_color", "00000066");
+        intent.putExtra("browser_list_fontscale", "120%");
+        intent.putExtra("browser_list_layout", "0");
+        intent.putExtra("browser_filter_extension_whitelist", "*.ttf");
+        
+        try {
+            startActivityForResult(intent, PICK_REQUEST_CODE);
+        } catch (ActivityNotFoundException e) {
+            Log.e(TAG, e.toString());
+            showDialog(DIALOG_NEED_AND);
+        }
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent intent) {
+        if (requestCode == PICK_REQUEST_CODE) {
+            if (resultCode == RESULT_OK) {
+                Uri uri = intent.getData();
+                if (uri != null) {
+                    String path = uri.toString();
+                    if (path.toLowerCase().startsWith("file://")) {
+                        File fontFile = new File(URI.create(path)); 
+                        path = fontFile.getAbsolutePath();
+                        adapter.setPathAt(listPosition, path);
+                        lastFolder = fontFile.getParent();
+                    }
+                }
+            }
+        }
+    }
     
+    @Override
+    public void onCreateContextMenu(ContextMenu menu, View v, ContextMenuInfo menuInfo) {
+        super.onCreateContextMenu(menu, v, menuInfo);
+        AdapterView.AdapterContextMenuInfo info = (AdapterView.AdapterContextMenuInfo) menuInfo;
+        menu.setHeaderTitle(fonts[info.position]);
+
+        // did the user set this path?
+        if ( ! adapter.getPathAt(info.position).equals(sysFontPaths[info.position])) {
+            menu.add(Menu.NONE, CONTEXT_COPY,  1, R.string.context_copy);
+            menu.add(Menu.NONE, CONTEXT_CLEAR, 3, R.string.context_clear);
+        }
+        
+        // is there a valid path in the clipboard?
+        if (clipboard.hasText() && clipboard.getText().toString().matches("^/.+?.ttf$")) {
+            menu.add(Menu.NONE, CONTEXT_PASTE, 2, R.string.context_paste);
+        }
+    }
+    
+    @Override
+    public boolean onContextItemSelected(MenuItem item) {
+        AdapterView.AdapterContextMenuInfo info = (AdapterView.AdapterContextMenuInfo)item.getMenuInfo();
+
+        switch(item.getItemId()) {
+        case CONTEXT_COPY:
+            clipboard.setText( adapter.getPathAt(info.position));
+            break;
+        case CONTEXT_PASTE:
+            adapter.setPathAt(info.position, clipboard.getText().toString());
+            break;
+        case CONTEXT_CLEAR:
+            adapter.setPathAt(info.position, sysFontPaths[info.position]);
+            break;
+        default:
+            super.onContextItemSelected(item);
+        }
+
+        return true;
+    }
+        
     /**
      * Restores backed up fonts from /sdcard/Fonts/
      */
@@ -328,14 +329,14 @@ public class TypeFresh extends ListActivity {
      * Resets all selected fonts to empty.
      */
     protected void resetSelections() {
-        mAdapter.setFontPaths(sysFontPaths);        
+        adapter.setPaths(sysFontPaths);        
     }    
 
     /**
      * Initiates copying of selected fonts to the system.
      */
     protected void applySelections() {
-        String[] sPaths = mAdapter.getPaths();
+        String[] sPaths = adapter.getPaths();
         copyFiles( R.string.diag_applying, R.string.toast_applied, sPaths, sysFontPaths);
         
     }    
@@ -358,8 +359,8 @@ public class TypeFresh extends ListActivity {
             return;
         }
         
-        mFileCopier = new FileCopier(this);
-        mFileCopier.execute(src, dst, getString(completedToast));
+        fileCopier = new FileCopier(this);
+        fileCopier.execute(src, dst, getString(completedToast));
     }
 
     
@@ -451,19 +452,19 @@ public class TypeFresh extends ListActivity {
                     R.string.reboot_title, R.string.reboot_message);
             break;
         case DIALOG_REBOOT:
-            mPDialog = new ProgressDialog(this);
-            mPDialog.setTitle(getString(R.string.diag_rebooting));
-            mPDialog.setMessage(getString(R.string.please_wait));
-            mPDialog.setCancelable(false);
-            mPDialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
-            dialog = mPDialog;
+            progressDialog = new ProgressDialog(this);
+            progressDialog.setTitle(getString(R.string.diag_rebooting));
+            progressDialog.setMessage(getString(R.string.please_wait));
+            progressDialog.setCancelable(false);
+            progressDialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
+            dialog = progressDialog;
             break;
         case DIALOG_PROGRESS:
-            mPDialog = new ProgressDialog(this);
-            mPDialog.setTitle(getString(R.string.diag_copying));
-            mPDialog.setCancelable(false);
-            mPDialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
-            dialog = mPDialog;
+            progressDialog = new ProgressDialog(this);
+            progressDialog.setTitle(getString(R.string.diag_copying));
+            progressDialog.setCancelable(false);
+            progressDialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
+            dialog = progressDialog;
             break;
         default:
             dialog = null;
@@ -503,14 +504,14 @@ public class TypeFresh extends ListActivity {
     protected void reboot() throws IOException {
         showDialog(DIALOG_REBOOT);
 
-        if (mFileCopier != null) {
+        if (fileCopier != null) {
             // there should be no way the FileCopier thread is still running, so just kill it
-            mFileCopier = null;
+            fileCopier = null;
         }
         
         try {
             Log.i(TAG,"Calling reboot");
-            Process su = mRuntime.exec("/system/bin/su");
+            Process su = runtime.exec("/system/bin/su");
             su.getOutputStream().write("reboot".getBytes());
         } catch (IOException e) {
             // get rid of our dialog first and then throw the exception back
@@ -518,7 +519,7 @@ public class TypeFresh extends ListActivity {
             throw e;
         }
         
-        if (mPDialog.isShowing()) {
+        if (progressDialog.isShowing()) {
             dismissDialog(DIALOG_PROGRESS);
         }
     }

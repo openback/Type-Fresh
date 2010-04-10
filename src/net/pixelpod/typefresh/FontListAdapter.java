@@ -77,6 +77,16 @@ public class FontListAdapter extends ArrayAdapter<Object> {
     }
     
     /**
+     * Returns the user-selected font path at the specified index
+     * 
+     * @param index index in list of fonts 
+     * @return font path
+     */
+    public String getPathAt(int index) {
+        return fontPaths[index];
+    }
+    
+    /**
      * Returns the system font filenames
      * 
      * @return <code>String[]</code> of installed font filenames in same order as in the
@@ -92,7 +102,7 @@ public class FontListAdapter extends ArrayAdapter<Object> {
      * @param position Position in the <code>ListView</code> 
      * @param path     Full path of desired font.
      */
-    public void setFontPath(int position, String path) {
+    public void setPathAt(int position, String path) {
         fontPaths[position] = path;
         notifyDataSetChanged();
     }
@@ -103,7 +113,7 @@ public class FontListAdapter extends ArrayAdapter<Object> {
      * @param paths <code>String[]</code> of paths to be applied in same order as in the
      *               <code>ListView</code>
      */
-    public void setFontPaths(String[] paths) {
+    public void setPaths(String[] paths) {
         if (paths.length != fontPaths.length) {
             // TODO: throw exception?
             Log.i(TAG, "Not resetting paths");

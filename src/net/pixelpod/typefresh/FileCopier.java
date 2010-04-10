@@ -48,10 +48,10 @@ public class FileCopier extends AsyncTask<Object, Object, Void> {
 
     // holds block that /system is located on
     private static String systemBlock = null;
-    private String mToastText = "";
-    private String[] dstPaths = null;
-    private String[] srcPaths = null;
-    private TypeFresh mTypeFresh = null;
+    private String toastText = "";
+    private String[] destinationPaths = null;
+    private String[] sourcePaths = null;
+    private TypeFresh typeFresh = null;
     private boolean success;
 
     /**
@@ -60,22 +60,22 @@ public class FileCopier extends AsyncTask<Object, Object, Void> {
      * @param typeFresh The owner of this copier and owner of the
      *                   ProgressDialog that we will use.
      */
-    public FileCopier(TypeFresh typeFresh) {
-        mTypeFresh = typeFresh;
+    public FileCopier(TypeFresh owner) {
+        typeFresh = owner;
     }
 
     @Override
 
     // params: String[] source, String[] destination, toastText 
     protected Void doInBackground(Object... params) {
-        srcPaths = (String[])params[0];
-        dstPaths = (String[])params[1];
-        mToastText = (String)params[2];
+        sourcePaths = (String[])params[0];
+        destinationPaths = (String[])params[1];
+        toastText = (String)params[2];
 
         Looper.prepare();
         String cmd = null;
         boolean needReboot = false;
-        boolean remountRequired = dstPaths[0].indexOf("/system/") == 0; 
+        boolean remountRequired = destinationPaths[0].indexOf("/system/") == 0; 
 
         Process su = null;
         Runtime runtime = Runtime.getRuntime();
@@ -99,13 +99,13 @@ public class FileCopier extends AsyncTask<Object, Object, Void> {
         }
             
         try {
-            for (int i = 0; i < srcPaths.length; i++) {
-                if (srcPaths[i].equals(dstPaths[i])) {
+            for (int i = 0; i < sourcePaths.length; i++) {
+                if (sourcePaths[i].equals(destinationPaths[i])) {
                     continue;
                 }
-                publishProgress(srcPaths[i]);
+                publishProgress(sourcePaths[i]);
                 su = runtime.exec("/system/bin/su");
-                cmd = "cp -f " + srcPaths[i] + " " + dstPaths[i];
+                cmd = "cp -f " + sourcePaths[i] + " " + destinationPaths[i];
                 Log.i(TypeFresh.TAG,"Executing \"" + cmd + "\"");
                 cmd += "\nexit\n";
 
@@ -123,7 +123,7 @@ public class FileCopier extends AsyncTask<Object, Object, Void> {
                     // even if there was an error, we want to continue to remount the system
                 } else {
                     // If we've overwritten any of the core fonts, we need to reboot
-                    if (dstPaths[i].indexOf("/system/fonts/Droid") == 0) {
+                    if (destinationPaths[i].indexOf("/system/fonts/Droid") == 0) {
                         needReboot = true;
                     }
                     
@@ -148,7 +148,7 @@ public class FileCopier extends AsyncTask<Object, Object, Void> {
             publishProgress(TypeFresh.DIALOG_NEED_ROOT);
         } catch (InterruptedException e) {
             Log.e(TypeFresh.TAG,e.toString());
-            // hmm...should I yell about this to the user?
+            // hmm...how should I yell about this to the user?
         }
         return null;
     }
@@ -158,23 +158,23 @@ public class FileCopier extends AsyncTask<Object, Object, Void> {
     protected void onProgressUpdate(Object... message) {
         if (message[0] instanceof String) {
             // a String will just update the ProgressDialog
-            mTypeFresh.mPDialog.setMessage((String)message[0]);
+            typeFresh.progressDialog.setMessage((String)message[0]);
         } else {
             // otherwise we're calling another Dialog
-            mTypeFresh.showDialog(((Number)message[0]).intValue());
+            typeFresh.showDialog(((Number)message[0]).intValue());
         }
     }
     
     @Override
     protected void onPreExecute() {
-        mTypeFresh.showDialog(TypeFresh.DIALOG_PROGRESS);
+        typeFresh.showDialog(TypeFresh.DIALOG_PROGRESS);
     }
     
     @Override
     protected void onPostExecute(Void result) {
-        mTypeFresh.mPDialog.dismiss();
+        typeFresh.progressDialog.dismiss();
         if (success) {
-            Toast.makeText(mTypeFresh, mToastText, Toast.LENGTH_SHORT).show();
+            Toast.makeText(typeFresh, toastText, Toast.LENGTH_SHORT).show();
         }
     }
     
@@ -184,8 +184,8 @@ public class FileCopier extends AsyncTask<Object, Object, Void> {
      * 
      * @param typeFresh The new Activity whose ProgressDialog to use.
      */
-    public void setActivity(TypeFresh typeFresh) {
-        mTypeFresh = typeFresh;
+    public void setActivity(TypeFresh owner) {
+        typeFresh = owner;
     }
 
     // TODO: Error remounting: "mount: mounting /dev/block/mtdblock3 on /system failed:
