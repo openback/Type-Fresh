@@ -94,6 +94,7 @@ public class TypeFresh extends ListActivity {
     private int listPosition;
     private final Runtime runtime = Runtime.getRuntime();
     public ProgressDialog progressDialog = null;
+    private static int progressDialogTitle = R.string.diag_copying;
     private FontListAdapter adapter = null;
     private static AsyncTask<Object, Object, Void> fileCopier = null;
     private static ClipboardManager clipboard = null;
@@ -215,17 +216,6 @@ public class TypeFresh extends ListActivity {
         return false;
     }
     
-    /**
-     * Copies all system fonts to /sdcard/Fonts
-     */
-    protected void backupFonts() {
-        String[] dPaths = new String[fonts.length];
-        for(int i = 0; i < fonts.length; i++) {
-            dPaths[i] = extStorage + "/Fonts/" + fonts[i];
-        }
-
-        copyFiles(R.string.diag_backing_up, R.string.toast_backed_up, sysFontPaths, dPaths);
-    }
     @Override
     public void onListItemClick(ListView parent, View v, int position, long id) {
         listPosition = position; 
@@ -313,6 +303,18 @@ public class TypeFresh extends ListActivity {
     }
         
     /**
+     * Copies all system fonts to /sdcard/Fonts
+     */
+    protected void backupFonts() {
+        String[] dPaths = new String[fonts.length];
+        for(int i = 0; i < fonts.length; i++) {
+            dPaths[i] = extStorage + "/Fonts/" + fonts[i];
+        }
+
+        copyFiles(R.string.diag_backing_up, R.string.toast_backed_up, sysFontPaths, dPaths);
+    }
+
+    /**
      * Restores backed up fonts from /sdcard/Fonts/
      */
     protected void restoreFonts() {
@@ -321,7 +323,7 @@ public class TypeFresh extends ListActivity {
             sPaths[i] = extStorage + "/Fonts/" + fonts[i];
         }
 
-        copyFiles(R.string.diag_restoring , R.string.toast_restored, sPaths, sysFontPaths);
+        copyFiles(R.string.diag_restoring, R.string.toast_restored, sPaths, sysFontPaths);
         resetSelections();
     }
     
@@ -351,7 +353,6 @@ public class TypeFresh extends ListActivity {
      * @param src            <code>String[]</code> of source paths.
      * @param dst            <code>String</code> of destination paths, same length as src.
      */
-    // TODO: use dialogTitle
     protected void copyFiles(int dialogTitle, int completedToast,
                                String[] src, String[] dst) {
         if (src.length != dst.length) {
@@ -359,6 +360,7 @@ public class TypeFresh extends ListActivity {
             return;
         }
         
+        progressDialogTitle = dialogTitle;
         fileCopier = new FileCopier(this);
         fileCopier.execute(src, dst, getString(completedToast));
     }
@@ -461,7 +463,7 @@ public class TypeFresh extends ListActivity {
             break;
         case DIALOG_PROGRESS:
             progressDialog = new ProgressDialog(this);
-            progressDialog.setTitle(getString(R.string.diag_copying));
+            progressDialog.setTitle(getString(progressDialogTitle));
             progressDialog.setCancelable(false);
             progressDialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
             dialog = progressDialog;
@@ -473,6 +475,14 @@ public class TypeFresh extends ListActivity {
         return dialog;
     }
 
+    @Override
+    protected void onPrepareDialog(int id, Dialog dialog) {
+        switch (id) {
+        case DIALOG_PROGRESS:
+            dialog.setTitle(progressDialogTitle);
+            break;
+        }
+    }
     /**
      * Returns an AlertDialog with one dismiss button
      * 
@@ -496,6 +506,8 @@ public class TypeFresh extends ListActivity {
 
     // TODO: Figure out why reboot is random
     // reboot works, but can happen any time from 10 seconds to 5 minutes after being called
+    // possible cause is my app still holding references to files on /system after copying to it,
+    // as shown by running lsof
     /**
      * Reboots the system.
      * 
