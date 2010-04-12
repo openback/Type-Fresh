@@ -36,8 +36,6 @@ import android.util.Log;
 import android.widget.Toast;
 
 /**
- * Insert comments.
- * 
  * @author Timothy Caraballo
  *
  */
@@ -57,7 +55,7 @@ public class FileCopier extends AsyncTask<Object, Object, Void> {
     /**
      * Class constructor.
      * 
-     * @param typeFresh The owner of this copier and owner of the
+     * @param owner The owner of this copier and owner of the
      *                   ProgressDialog that we will use.
      */
     public FileCopier(TypeFresh owner) {
@@ -175,7 +173,7 @@ public class FileCopier extends AsyncTask<Object, Object, Void> {
      * Sets a new TypeFresh as this threads owner. This is important, since we
      * need a reference to the new Activity when the screen rotates.
      * 
-     * @param typeFresh The new Activity whose ProgressDialog to use.
+     * @param owner The new Activity whose ProgressDialog to use.
      */
     public void setActivity(TypeFresh owner) {
         typeFresh = owner;

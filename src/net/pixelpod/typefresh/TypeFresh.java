@@ -55,10 +55,8 @@ import android.widget.AdapterView;
 import android.widget.ListView;
 
 /**
- * Insert comments.
- * 
  * @author Timothy Caraballo
- * @version 0.9.1
+ * @version 0.9.2
  */
 public class TypeFresh extends ListActivity {
     // Tag for Log use
@@ -366,8 +364,6 @@ public class TypeFresh extends ListActivity {
         fileCopier.execute(src, dst, getString(completedToast));
     }
 
-    
-
     @Override
     protected Dialog onCreateDialog(int id) {
         AlertDialog dialog;
@@ -434,6 +430,7 @@ public class TypeFresh extends ListActivity {
                 .setPositiveButton(R.string.reboot_ok, new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface dialog, int id) {
                         dialog.dismiss();
+
                         try {
                             reboot();
                         } catch (IOException e) {
