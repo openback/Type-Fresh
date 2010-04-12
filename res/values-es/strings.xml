@@ -9,7 +9,7 @@
 	<string name="firstrun_message">Gracias por ulitizar a Type Fresh! Como cualquier programa que funciona como root, debe hacer un Nandroid backup primero. También haga un backup de su fuentes existente para que se puede restaurar lo a cualquier momento.\n\nÉste programa necesita AndExplorer para selectar ficheros, y es disponible en el Android Market.</string>
 	<string name="firstrun_title">Bienvenido a Type Fresh!</string>
 	<string name="reboot_title">Necesia Rebutear</string>
-	<string name="reboot_message">Su systema necesita rebutear para cargar los nuevos funetes. Por favor, rebutear tan pronto come sea posible.</string>
+	<string name="reboot_message">Su systema necesita rebutear para cargar los nuevos fuentes. Quieres hacerlo ahora?</string>
 	<string name="reboot_ok">Rebutear ahora</string>
 	<string name="reboot_cancel">No</string>
 	<string name="about_title">Type Fresh v0.9</string>

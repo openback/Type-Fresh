@@ -9,7 +9,7 @@
     <string name="firstrun_message">Thank you for using Type Fresh! As with any program that does work as root, you should perform a Nandroid backup first. Also, use the menu to create a backup of your existing system fonts so that you can restore them at any time.\n\nThis program requires AndExplorer for file selections, and is available on the Android Market.</string>
     <string name="firstrun_title">Welcome to Type Fresh!</string>
     <string name="reboot_title">Reboot required</string>
-    <string name="reboot_message">Your system needs to be rebooted to load your new fonts. Please do so as soon as possible.</string>
+    <string name="reboot_message">Your system needs to be rebooted to load your new fonts. Would you like to reboot now?</string>
     <string name="reboot_ok">Reboot now</string>
     <string name="reboot_cancel">Cancel</string>
     <string name="about_title">Type Fresh v0.9</string>
@@ -19,7 +19,7 @@
     <string name="need_root_message">Error copying files. Are you rooted?</string>
     <string name="need_root_title">su command error</string>
     <string name="reboot_failed_title">Reboot error</string>
-    <string name="reboot_failed_message">Could not reboot the system. Please do so manually.</string>
+    <string name="reboot_failed_message">Could not reboot the system. Your system needs to be rebooted to load your new fonts. Please do so as soon as possible.</string>
     <string name="mkdir_failed_title">Error</string>
     <string name="mkdir_failed_message">Could not create Fonts directory on sdcard</string>
     <string name="remount_failed_title">Error remounting</string>

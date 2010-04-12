@@ -25,6 +25,7 @@
 
 package net.pixelpod.typefresh;
 
+import java.io.DataOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
@@ -426,8 +427,6 @@ public class TypeFresh extends ListActivity {
                     R.string.remount_failed_title, R.string.remount_failed_message);
             break;
         case DIALOG_NEED_REBOOT:
-            // I want to reboot myself, but I haven't figured it out yet
-            /*
             dialog = (new AlertDialog.Builder(this))
                 .setIcon(android.R.drawable.ic_dialog_alert)
                 .setMessage(R.string.reboot_message)
@@ -440,6 +439,9 @@ public class TypeFresh extends ListActivity {
                         } catch (IOException e) {
                             Log.e(TAG, e.toString());
                             showDialog(TypeFresh.DIALOG_REBOOT_FAILED);
+                        } catch (InterruptedException e) {
+                            Log.e(TAG, e.toString());
+                            showDialog(TypeFresh.DIALOG_REBOOT_FAILED);
                         }
                     }
                 })
@@ -449,9 +451,6 @@ public class TypeFresh extends ListActivity {
                     }
                 }
             ).create();
-            */
-            dialog = makeSimpleAlertDialog(android.R.drawable.ic_dialog_alert,
-                    R.string.reboot_title, R.string.reboot_message);
             break;
         case DIALOG_REBOOT:
             progressDialog = new ProgressDialog(this);
@@ -504,16 +503,14 @@ public class TypeFresh extends ListActivity {
                 ).create();
     }
 
-    // TODO: Figure out why reboot is random
-    // reboot works, but can happen any time from 10 seconds to 5 minutes after being called
-    // possible cause is my app still holding references to files on /system after copying to it,
-    // as shown by running lsof
     /**
      * Reboots the system.
      * 
      * @throws IOException If our <code>su</code> process has a problem.
+     * @throws InterruptedException If our <code>su</code> process has a problem.
      */
-    protected void reboot() throws IOException {
+    protected void reboot() throws IOException, InterruptedException {
+        // it never actually shows the dialog, though :'/
         showDialog(DIALOG_REBOOT);
 
         if (fileCopier != null) {
@@ -524,8 +521,15 @@ public class TypeFresh extends ListActivity {
         try {
             Log.i(TAG,"Calling reboot");
             Process su = runtime.exec("/system/bin/su");
-            su.getOutputStream().write("reboot".getBytes());
+            DataOutputStream stream = new DataOutputStream(su.getOutputStream());
+            stream.writeBytes("reboot\nexit\n");
+            stream.flush();
+            su.waitFor();
         } catch (IOException e) {
+            // get rid of our dialog first and then throw the exception back
+            dismissDialog(DIALOG_PROGRESS);
+            throw e;
+        } catch (InterruptedException e) {
             // get rid of our dialog first and then throw the exception back
             dismissDialog(DIALOG_PROGRESS);
             throw e;

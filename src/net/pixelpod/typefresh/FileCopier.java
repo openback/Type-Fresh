@@ -133,13 +133,6 @@ public class FileCopier extends AsyncTask<Object, Object, Void> {
                 su.destroy();
             }
 
-            if (remountRequired) {
-                if (!remount(READ_ONLY)) {
-                    // TODO: it ALWAYS fails right now, so stop yelling ;_;
-                    // publishProgress(TypeFresh.DIALOG_REMOUNT_FAILED);
-                }
-            }
-
             if (needReboot) {
                 publishProgress(TypeFresh.DIALOG_NEED_REBOOT);
             }
@@ -188,8 +181,6 @@ public class FileCopier extends AsyncTask<Object, Object, Void> {
         typeFresh = owner;
     }
 
-    // TODO: Error remounting: "mount: mounting /dev/block/mtdblock3 on /system failed:
-    // Device or resource busy"
     /**
      * Remounts /system read/write.
      * 
