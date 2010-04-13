@@ -26,7 +26,7 @@
 package net.pixelpod.typefresh;
 
 import java.io.BufferedReader;
-import java.io.FileReader;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
 
@@ -217,31 +217,54 @@ public class FileCopier extends AsyncTask<Object, Object, Void> {
      * Locates the block on which /system is located and stores it in a static variable to ease
      * computation.
      * 
-     * @throws IOException If we have a problem reading <code>/etc/fstab</code>.
+     * @throws InterruptedException If we have a problem running <code>mount</code>.
+     * @throws IOException If we have a problem reading <code>stdout</code>.
+     * @throws FileNotFoundException If we can't find <code>/system</code>.
      * @return <code>String</code> of the block name, or <code>null</code>.
      */
-    protected static String systemLocation() throws IOException {
-        if (systemBlock != null) {
+    protected static String systemLocation() throws InterruptedException, IOException, FileNotFoundException {
+    	// no need to look for /system a second time
+    	if (systemBlock != null) {
             return systemBlock;
         }
 
-        try {
-            BufferedReader br = new BufferedReader(new FileReader("/etc/fstab"));
-            String line;
+        Process su = Runtime.getRuntime().exec("/system/bin/su");
+        String cmd = "mount\nexit\n";
+        Log.d(TypeFresh.TAG, "running \"" + cmd + "\"");
 
-            while((line = br.readLine()) != null) {
-                // look for /system
-                if (line.contains("/system")) {
-                    systemBlock =  line.substring(0, line.indexOf("\t"));
-                    Log.i(TypeFresh.TAG,"Found /system mounted at " + systemBlock);
-                    return systemBlock;
-                }
-            }
-        } catch (IOException e) {
-            throw e;
+        try {
+            su.getOutputStream().write(cmd.getBytes());
+
+            if (su.waitFor() != 0) {
+	            BufferedReader br
+	                    = new BufferedReader(new InputStreamReader(su.getErrorStream()), 200);
+	            String line;
+	            while((line = br.readLine()) != null) {
+	                Log.e(TypeFresh.TAG,"Error: \"" + line + "\"");
+	            }
+	            Log.e(TypeFresh.TAG, "Could not find /system, returning");
+	        } else {
+	        	Log.d(TypeFresh.TAG, "Reading location");
+	            BufferedReader br
+	            		= new BufferedReader(new InputStreamReader(su.getInputStream()), 200);
+	            String line;
+	            
+	            while ((line = br.readLine()) != null) {
+	            	if (line.contains("/system")) {
+			        	Log.d(TypeFresh.TAG, "line = " + line);
+			            systemBlock = line.substring(0, line.indexOf(" "));
+			            Log.i(TypeFresh.TAG,"Found /system mounted at " + systemBlock);
+
+			            return systemBlock;
+	            	}
+	            }
+	        }
+        } catch (InterruptedException e) {
+        	Log.e(TypeFresh.TAG, e.toString());
+        	throw e;
         }
 
-        return null;
+        throw new FileNotFoundException("Could not find /system");
     }
 
 }
