@@ -103,7 +103,7 @@ public class FileCopier extends AsyncTask<Object, Object, Void> {
                 }
                 publishProgress(sourcePaths[i]);
                 su = runtime.exec("/system/bin/su");
-                cmd = "cp -f " + sourcePaths[i] + " " + destinationPaths[i];
+                cmd = "cp -f \"" + sourcePaths[i] + "\" \"" + destinationPaths[i] + "\"";
                 Log.i(TypeFresh.TAG,"Executing \"" + cmd + "\"");
                 cmd += "\nexit\n";
 

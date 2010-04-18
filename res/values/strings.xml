@@ -12,7 +12,7 @@
     <string name="reboot_message">Your system needs to be rebooted to load your new fonts. Would you like to reboot now?</string>
     <string name="reboot_ok">Reboot now</string>
     <string name="reboot_cancel">Cancel</string>
-    <string name="about_title">Type Fresh v0.9.3</string>
+    <string name="about_title">Type Fresh v0.9.3.5</string>
     <string name="about_message">Programmed by: Timothy Caraballo\n   openback@pixelpod.net\n\nGraphics by: Richard A. Caraballo\n   hello@minusbaby.com\n\nfor Pixelpod INTERNATIONAL\n\nhttp://pixelpod.net</string>
     <string name="need_and_title">AndExplorer not found</string>
     <string name="dismiss">Dismiss</string>

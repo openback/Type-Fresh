@@ -56,7 +56,7 @@ import android.widget.ListView;
 
 /**
  * @author Timothy Caraballo
- * @version 0.9.2
+ * @version 0.9.3.5
  */
 public class TypeFresh extends ListActivity {
     // Tag for Log use
