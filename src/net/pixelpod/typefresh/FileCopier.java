@@ -26,6 +26,7 @@
 package net.pixelpod.typefresh;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -76,7 +77,6 @@ public class FileCopier extends AsyncTask<Object, Object, Void> {
         boolean remountRequired = destinationPaths[0].indexOf("/system/") == 0; 
 
         Process su = null;
-        Runtime runtime = Runtime.getRuntime();
         success = false;
 
         if (remountRequired) { 
@@ -102,7 +102,7 @@ public class FileCopier extends AsyncTask<Object, Object, Void> {
                     continue;
                 }
                 publishProgress(sourcePaths[i]);
-                su = runtime.exec("/system/bin/su");
+                su = getSu();
                 cmd = "cp -f \"" + sourcePaths[i] + "\" \"" + destinationPaths[i] + "\"";
                 Log.i(TypeFresh.TAG,"Executing \"" + cmd + "\"");
                 cmd += "\nexit\n";
@@ -190,12 +190,12 @@ public class FileCopier extends AsyncTask<Object, Object, Void> {
      */
     public static boolean remount(int readwrite) throws IOException,InterruptedException {
         String type = (readwrite == READ_WRITE) ? "rw" : "ro";
-        Process su = Runtime.getRuntime().exec("/system/bin/su");
+        Process su = getSu();
         String systemBlock = systemLocation();
 
         Log.i(TypeFresh.TAG,"Remounting /system " + type);
         String cmd = "mount -o remount," + type + " " + systemBlock + " /system\nexit\n";
-        Log.i(TypeFresh.TAG, "Executing :" + cmd);
+        Log.i(TypeFresh.TAG, "Executing : '" + cmd + "'");
         su.getOutputStream().write(cmd.getBytes());
         
         if (su.waitFor() != 0) {
@@ -228,7 +228,7 @@ public class FileCopier extends AsyncTask<Object, Object, Void> {
             return systemBlock;
         }
 
-        Process su = Runtime.getRuntime().exec("/system/bin/su");
+        Process su = getSu();
         String cmd = "mount\nexit\n";
         Log.d(TypeFresh.TAG, "running \"" + cmd + "\"");
 
@@ -267,4 +267,17 @@ public class FileCopier extends AsyncTask<Object, Object, Void> {
         throw new FileNotFoundException("Could not find /system");
     }
 
+    /**
+     * Finds the proper <code>su</code> binary and returns its <code>Process</code>.
+     * 
+     * @throws IOException If we have a problem reading <code>stdout</code>.
+     * @return Superuser <code>Process</code>.
+     */
+    private static Process getSu() throws IOException {
+        String suLocation = "/system/bin/su";
+        if (!(new File(suLocation)).exists()) {
+            suLocation = "/system/xbin/su";
+        }
+        return Runtime.getRuntime().exec(suLocation);
+    }
 }
