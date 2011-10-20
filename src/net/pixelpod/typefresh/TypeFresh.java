@@ -91,7 +91,6 @@ public class TypeFresh extends ListActivity {
     private String[] fonts;
     private String[] sysFontPaths;
     private int listPosition;
-    private final Runtime runtime = Runtime.getRuntime();
     public ProgressDialog progressDialog = null;
     private static int progressDialogTitle = R.string.diag_copying;
     private FontListAdapter adapter = null;
@@ -339,7 +338,6 @@ public class TypeFresh extends ListActivity {
     protected void applySelections() {
         String[] sPaths = adapter.getPaths();
         copyFiles( R.string.diag_applying, R.string.toast_applied, sPaths, sysFontPaths);
-        
     }    
 
     /**
@@ -441,11 +439,6 @@ public class TypeFresh extends ListActivity {
                             showDialog(TypeFresh.DIALOG_REBOOT_FAILED);
                         }
                     }
-                })
-                .setNegativeButton(R.string.reboot_cancel, new DialogInterface.OnClickListener() {
-                    public void onClick(DialogInterface dialog, int id) {
-                        dialog.dismiss();
-                    }
                 }
             ).create();
             break;
@@ -517,7 +510,7 @@ public class TypeFresh extends ListActivity {
         
         try {
             Log.i(TAG,"Calling reboot");
-            Process su = runtime.exec("/system/bin/su");
+            Process su = FileCopier.getSu();
             DataOutputStream stream = new DataOutputStream(su.getOutputStream());
             stream.writeBytes("reboot\nexit\n");
             stream.flush();
